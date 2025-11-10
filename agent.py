@@ -634,17 +634,14 @@ Output ONLY the JSON object, nothing else."""),
     def _extract_teaching_style(self, user_context: str) -> str:
         """Extract teaching style from user context"""
         if not user_context:
-            return "mixed"
+            return "normal"
         
         text_lower = user_context.lower()
         
         teaching_styles = {
-            "visual": ["visual", "diagram", "chart", "graph", "image"],
-            "hands-on": ["hands-on", "hands on", "practical", "practice", "project"],
-            "theoretical": ["theoretical", "theory", "concept", "principle"],
-            "video-based": ["video", "youtube", "watch", "tutorial video"],
-            "reading-based": ["read", "book", "article", "text"],
-            "project-based": ["project", "build", "create", "implement"]
+            "fast-paced": ["fast-paced", "fast paced", "quick", "quick learn", "quick learn"],
+            "in-depth": ["in-depth", "deep", "thorough", "thorough learning", "thorough learning"],
+            "normal": ["normal", "regular", "standard", "regular learning", "regular learning"],
         }
         
         for style, keywords in teaching_styles.items():
