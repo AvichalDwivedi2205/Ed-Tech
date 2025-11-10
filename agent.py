@@ -11,6 +11,7 @@ from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 import json
+import re
 from tools import OCRTool, PerplexitySearchTool, ScraperTool
 
 
@@ -191,14 +192,25 @@ class RoadmapGeneratorAgent:
         if roadmap_context:
             context = f"\n\nUser has provided a roadmap document with the following content:\n{roadmap_context[:1000]}"
         
-        # Check if we have enough information already
-        if all_user_input and self._is_input_specific(all_user_input) and clarification_count == 0:
-            # Skip clarification if input is already specific
-            return {
-                **state,
-                "actions": actions,
-                "messages": messages + [AIMessage(content="I have enough information. Generating your roadmap...")]
-            }
+        # Always ask at least one clarification question (especially about teaching style)
+        # Only skip if we've already asked questions and have enough info
+        if clarification_count > 0:
+            # Check if we have enough information after asking questions
+            if all_user_input and self._has_all_required_info(all_user_input):
+                return {
+                    **state,
+                    "actions": actions,
+                    "messages": messages + [AIMessage(content="I have enough information. Generating your roadmap...")]
+                }
+        
+        # Determine which question to ask based on clarification count
+        question_focus = ""
+        if clarification_count == 0:
+            question_focus = '''IMPORTANT: You MUST ask about the user's preferred teaching style. Ask: "What is your preferred teaching/learning style? (e.g., visual/hands-on/theoretical/practical/project-based/video-based/reading-based)" This is critical for generating the roadmap.'''
+        elif clarification_count == 1:
+            question_focus = '''Ask about their current skill level and background: "What is your current skill level in this topic? (beginner/intermediate/advanced) Do you have any prior experience or background?"'''
+        elif clarification_count == 2:
+            question_focus = '''Ask about their learning goals and time constraints: "What are your learning goals? (career change, skill improvement, project-based, certification, etc.) Do you have any time constraints or preferred learning pace?"'''
         
         prompt = ChatPromptTemplate.from_messages([
             SystemMessage(content=f"""You are a helpful roadmap generator assistant. Your goal is to understand exactly what roadmap the user needs.
@@ -208,19 +220,28 @@ class RoadmapGeneratorAgent:
 Conversation so far:
 {all_user_input}
 
+{question_focus}
+
 Based on the conversation, determine if you need more information to generate a comprehensive roadmap. Ask ONE clear, specific question that will help you understand:
-1. What specific topic/subject they want to learn
-2. Their current skill level (beginner/intermediate/advanced)
-3. Their learning goals (career change, skill improvement, project-based, etc.)
-4. Time constraints or preferred learning pace
-5. Specific areas of focus within the topic
+1. Their preferred teaching/learning style (CRITICAL - must be asked first if not already answered)
+2. What specific topic/subject they want to learn
+3. Their current skill level (beginner/intermediate/advanced)
+4. Their learning goals (career change, skill improvement, project-based, etc.)
+5. Time constraints or preferred learning pace
+6. Specific areas of focus within the topic
 
 If the user has provided a roadmap document, ask questions to clarify:
 - What format they want the roadmap in
 - Any modifications or additions they want
 - Specific focus areas
 
-If you have enough information from the conversation, respond with "READY_TO_GENERATE" instead of a question."""),
+IMPORTANT: Only respond with "READY_TO_GENERATE" if you have ALL the following information:
+- Teaching/learning style preference
+- Specific topic/subject
+- Current skill level
+- Learning goals
+
+Otherwise, ask a question."""),
             MessagesPlaceholder(variable_name="messages")
         ])
         
@@ -265,19 +286,30 @@ If you have enough information from the conversation, respond with "READY_TO_GEN
         user_messages = [msg for msg in messages if isinstance(msg, HumanMessage)]
         ai_messages = [msg for msg in messages if isinstance(msg, AIMessage)]
         
-        # If we just asked a question and haven't received a response yet, end to wait
+        # If we just asked a question, wait for user response (return "end" to pause)
+        # In Streamlit, this will pause and wait for next user input
         if len(ai_messages) > len(user_messages):
             return "end"
         
         # If user has responded to our question
         if len(user_messages) > 0:
-            latest_user_input = user_messages[-1].content
-            # Check if input is now specific enough or we've reached max clarifications
-            if self._is_input_specific(latest_user_input) or clarification_count >= self.max_clarifications - 1:
+            # Get all user inputs combined
+            all_user_input = "\n".join([msg.content for msg in user_messages])
+            
+            # Check if we have all required information
+            if self._has_all_required_info(all_user_input):
                 return "generate"
-            # Otherwise, ask another clarification
+            
+            # If we haven't reached max clarifications, ask another question
             if clarification_count < self.max_clarifications:
                 return "clarify"
+            else:
+                # Max reached, generate with what we have
+                return "generate"
+        
+        # If no user messages yet but we haven't asked a question, ask one
+        if clarification_count == 0:
+            return "clarify"
         
         return "end"
     
@@ -344,55 +376,113 @@ If you have enough information from the conversation, respond with "READY_TO_GEN
         
         actions.append({"type": "generating", "message": "Generating comprehensive roadmap..."})
         
+        # Extract teaching style from user context
+        teaching_style = self._extract_teaching_style(user_context)
+        
         prompt = ChatPromptTemplate.from_messages([
-            SystemMessage(content=f"""You are an expert roadmap generator. Your task is to create a comprehensive, well-structured learning roadmap based on the user's requirements.
+            SystemMessage(content=f"""You are an expert roadmap generator. Your task is to create a comprehensive, well-structured learning roadmap in JSON format ONLY.
 
 {context_text}
 
-Generate a detailed roadmap that includes:
-1. Clear learning path broken into digestible stages/phases (use H2 headings for each stage).
-2. Specific topics/concepts to learn in each stage.
-3. For EVERY topic in each stage, provide curated resource lists grouped as:
-   - **YouTube Videos** (2-3 links minimum, include markdown links with title + short blurb)
-   - **Articles / Blog Posts** (2-3 links minimum)
-   - **Courses / MOOCs** (1-2 links, include platform name)
-   - **Books / References** (if available)
-   - **Hands-on Tutorials or Labs** (if available)
-4. Prerequisites for each stage.
-5. Estimated time for each stage.
-6. Practice projects or exercises with ideas and evaluation criteria.
-7. Milestones and checkpoints with measurable outcomes.
+CRITICAL: You MUST output ONLY valid JSON. No markdown, no explanations, no code blocks. Just pure JSON.
 
-Resource Requirements:
-- CRITICAL: Only use URLs from the "VERIFIED CITATIONS" section in search results. Do NOT invent, make up, or hallucinate URLs.
-- Use URLs exactly as provided in citations. Format links as `[Title](URL)` using ONLY verified URLs.
-- If a specific resource category cannot be satisfied from verified citations, clearly state "Add more resources here - search for [topic]" as a placeholder.
-- Include a "Why these resources" note for each category explaining the learning value.
-- Include at least one community or discussion resource (e.g., forums, Discord, Reddit) if available in citations.
-- NEVER create fake URLs or links that don't exist. If you don't have a verified URL, say so explicitly.
+JSON Structure Required:
+{{
+  "TeachingStyle": "<extracted teaching style or 'mixed' if not specified>",
+  "Subtopic1": {{
+    "TopicName": "<name of the subtopic/topic>",
+    "ContentList": {{
+      "videos": [
+        {{"title": "<title>", "url": "<url from VERIFIED CITATIONS only>", "description": "<brief description>"}},
+        ...
+      ],
+      "blogs": [
+        {{"title": "<title>", "url": "<url from VERIFIED CITATIONS only>", "description": "<brief description>"}},
+        ...
+      ],
+      "books": [
+        {{"title": "<title>", "author": "<author if available>", "description": "<brief description>"}},
+        ...
+      ],
+      "topics": [
+        "<specific topic/concept to study>",
+        ...
+      ]
+    }},
+    "SuggestedTimeToComplete": "<estimated time, e.g., '2-3 weeks', '1 month'>"
+  }},
+  "Subtopic2": {{
+    ...
+  }},
+  ...
+}}
 
-Presentation Requirements:
-- Use consistent markdown formatting with clear hierarchy.
-- Add a brief summary paragraph at the top of the roadmap.
-- Add a concluding "Next Steps" section with guidance on continuing learning, certification options, and portfolio tips.
+Requirements:
+1. Break the learning path into logical subtopics (Subtopic1, Subtopic2, etc.)
+2. For each subtopic, provide:
+   - A clear TopicName
+   - ContentList with videos, blogs, books, and topics to study
+   - SuggestedTimeToComplete estimate
+3. CRITICAL: Only use URLs from the "VERIFIED CITATIONS" section in search results. Do NOT invent URLs.
+4. If a URL is not available in citations, use empty string "" for url field.
+5. Include 2-3 videos, 2-3 blogs, and 1-2 books per subtopic when available.
+6. List specific topics/concepts to study in the "topics" array.
+7. TeachingStyle should reflect the user's preference (visual, hands-on, theoretical, practical, project-based, video-based, reading-based, or mixed).
 
-If the user provided an existing roadmap document, enhance it, organize it better, and add missing elements based on the search results and scraped content. Keep the original intent but improve clarity, ordering, and resource richness."""),
+Output ONLY the JSON object, nothing else."""),
             MessagesPlaceholder(variable_name="messages")
         ])
         
         chain = prompt | self.llm
         response = chain.invoke({"messages": messages})
         
-        roadmap = response.content
+        roadmap_text = response.content.strip()
         
-        actions.append({"type": "success", "message": "Roadmap generated successfully!"})
+        # Extract JSON from response (remove markdown code blocks if present)
+        roadmap_json_str = self._extract_json_from_response(roadmap_text)
         
-        return {
-            **state,
-            "final_roadmap": roadmap,
-            "actions": actions,
-            "messages": messages + [AIMessage(content=roadmap)]
-        }
+        # Parse and validate JSON
+        try:
+            roadmap_json = json.loads(roadmap_json_str)
+            
+            # Ensure TeachingStyle is set
+            if "TeachingStyle" not in roadmap_json or not roadmap_json["TeachingStyle"]:
+                roadmap_json["TeachingStyle"] = teaching_style or "mixed"
+            
+            # Convert to string for storage
+            roadmap_json_str = json.dumps(roadmap_json, indent=2)
+            
+            actions.append({"type": "success", "message": "Roadmap generated successfully!"})
+            
+            return {
+                **state,
+                "final_roadmap": roadmap_json_str,
+                "actions": actions,
+                "messages": messages + [AIMessage(content=f"Roadmap generated successfully! Here's your structured learning path:\n\n```json\n{roadmap_json_str}\n```")]
+            }
+        except json.JSONDecodeError as e:
+            actions.append({"type": "error", "message": f"Failed to parse JSON: {str(e)}"})
+            # Try to fix common JSON issues
+            roadmap_json_str = self._fix_json(roadmap_json_str)
+            try:
+                roadmap_json = json.loads(roadmap_json_str)
+                roadmap_json["TeachingStyle"] = teaching_style or roadmap_json.get("TeachingStyle", "mixed")
+                roadmap_json_str = json.dumps(roadmap_json, indent=2)
+                actions.append({"type": "success", "message": "Roadmap generated successfully (after JSON fix)!"})
+                return {
+                    **state,
+                    "final_roadmap": roadmap_json_str,
+                    "actions": actions,
+                    "messages": messages + [AIMessage(content=f"Roadmap generated successfully! Here's your structured learning path:\n\n```json\n{roadmap_json_str}\n```")]
+                }
+            except:
+                # Fallback: return as-is
+                return {
+                    **state,
+                    "final_roadmap": roadmap_text,
+                    "actions": actions,
+                    "messages": messages + [AIMessage(content=f"Roadmap generated. Note: JSON parsing had issues, but content is available:\n\n{roadmap_text}")]
+                }
     
     def _is_input_specific(self, text: str) -> bool:
         """Check if user input is specific enough"""
@@ -413,6 +503,93 @@ If the user provided an existing roadmap document, enhance it, organize it bette
             return False
         
         return True
+    
+    def _has_all_required_info(self, text: str) -> bool:
+        """Check if we have all required information including teaching style"""
+        if not text or len(text.strip()) < 10:
+            return False
+        
+        text_lower = text.lower()
+        
+        # Check for teaching style indicators
+        teaching_style_indicators = [
+            "visual", "hands-on", "theoretical", "practical", "project-based",
+            "video-based", "reading-based", "interactive", "lecture", "tutorial"
+        ]
+        has_teaching_style = any(indicator in text_lower for indicator in teaching_style_indicators)
+        
+        # Check for topic/subject
+        topic_indicators = ["learn", "study", "roadmap", "topic", "subject", "course"]
+        has_topic = any(indicator in text_lower for indicator in topic_indicators)
+        
+        # Check for skill level
+        skill_level_indicators = ["beginner", "intermediate", "advanced", "novice", "expert"]
+        has_skill_level = any(indicator in text_lower for indicator in skill_level_indicators)
+        
+        # If we have teaching style, topic, and some indication of goals/level, we're good
+        # We'll be lenient - if we have topic and teaching style, that's enough
+        return has_topic and (has_teaching_style or len(text.strip()) > 50)
+    
+    def _extract_teaching_style(self, user_context: str) -> str:
+        """Extract teaching style from user context"""
+        if not user_context:
+            return "mixed"
+        
+        text_lower = user_context.lower()
+        
+        teaching_styles = {
+            "visual": ["visual", "diagram", "chart", "graph", "image"],
+            "hands-on": ["hands-on", "hands on", "practical", "practice", "project"],
+            "theoretical": ["theoretical", "theory", "concept", "principle"],
+            "video-based": ["video", "youtube", "watch", "tutorial video"],
+            "reading-based": ["read", "book", "article", "text"],
+            "project-based": ["project", "build", "create", "implement"]
+        }
+        
+        for style, keywords in teaching_styles.items():
+            if any(keyword in text_lower for keyword in keywords):
+                return style
+        
+        return "mixed"
+    
+    def _extract_json_from_response(self, text: str) -> str:
+        """Extract JSON from LLM response, removing markdown code blocks if present"""
+        text = text.strip()
+        
+        # Remove markdown code blocks
+        if text.startswith("```json"):
+            text = text[7:]  # Remove ```json
+        elif text.startswith("```"):
+            text = text[3:]  # Remove ```
+        
+        if text.endswith("```"):
+            text = text[:-3]  # Remove closing ```
+        
+        text = text.strip()
+        
+        # Find JSON object boundaries
+        if text.startswith("{"):
+            # Find matching closing brace
+            brace_count = 0
+            for i, char in enumerate(text):
+                if char == "{":
+                    brace_count += 1
+                elif char == "}":
+                    brace_count -= 1
+                    if brace_count == 0:
+                        return text[:i+1]
+        
+        return text
+    
+    def _fix_json(self, json_str: str) -> str:
+        """Attempt to fix common JSON issues"""
+        # Remove trailing commas before closing braces/brackets
+        json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)
+        
+        # Fix single quotes to double quotes (basic)
+        json_str = json_str.replace("'", '"')
+        
+        return json_str
     
     def _extract_search_query(self, user_input: str, roadmap_context: str) -> str:
         """Extract search query from user input"""

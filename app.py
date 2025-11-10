@@ -6,6 +6,7 @@ import streamlit as st
 import os
 import re
 import tempfile
+import json
 from agent import RoadmapGeneratorAgent
 from langchain_core.messages import HumanMessage, AIMessage
 import time
@@ -50,6 +51,9 @@ if "roadmap_context" not in st.session_state:
 if "latest_roadmap" not in st.session_state:
     st.session_state.latest_roadmap = ""
 
+if "roadmap_json" not in st.session_state:
+    st.session_state.roadmap_json = None
+
 
 def display_action(action):
     """Display an action with appropriate icon and styling"""
@@ -76,11 +80,160 @@ def display_action(action):
         st.info(f"ℹ️ {message}")
 
 
+def is_json(text: str) -> bool:
+    """Check if text is valid JSON"""
+    try:
+        json.loads(text)
+        return True
+    except:
+        return False
+
+
+def render_roadmap_flowchart(json_data: dict):
+    """Render the roadmap as a beautiful flowchart"""
+    if not json_data:
+        return
+    
+    teaching_style = json_data.get("TeachingStyle", "mixed")
+    
+    # Display teaching style prominently
+    st.markdown("### 🎯 Teaching Style")
+    style_colors = {
+        "visual": "🔵",
+        "hands-on": "🟢",
+        "theoretical": "🟣",
+        "video-based": "🔴",
+        "reading-based": "🟠",
+        "project-based": "🟡",
+        "mixed": "🌈"
+    }
+    style_icon = style_colors.get(teaching_style.lower(), "🌈")
+    st.markdown(f"**{style_icon} {teaching_style.title()}**")
+    st.markdown("---")
+    
+    # Get all subtopics
+    subtopics = {k: v for k, v in json_data.items() if k.startswith("Subtopic")}
+    
+    if not subtopics:
+        st.warning("No subtopics found in roadmap")
+        return
+    
+    # Sort subtopics by key (Subtopic1, Subtopic2, etc.)
+    def get_subtopic_number(key):
+        match = re.search(r'\d+', key)
+        return int(match.group()) if match else 999
+    
+    sorted_subtopics = sorted(subtopics.items(), key=lambda x: get_subtopic_number(x[0]))
+    
+    # Create flowchart visualization
+    st.markdown("### 📊 Learning Path Flowchart")
+    
+    for idx, (subtopic_key, subtopic_data) in enumerate(sorted_subtopics):
+        topic_name = subtopic_data.get("TopicName", subtopic_key)
+        time_to_complete = subtopic_data.get("SuggestedTimeToComplete", "Not specified")
+        content_list = subtopic_data.get("ContentList", {})
+        
+        # Create a card for each subtopic
+        with st.container():
+            # Subtopic header with arrow indicator
+            if idx > 0:
+                st.markdown("<div style='text-align: center; margin: 10px 0;'><span style='font-size: 24px;'>⬇️</span></div>", unsafe_allow_html=True)
+            
+            # Subtopic card
+            st.markdown(f"""
+            <div style='border: 2px solid #4CAF50; border-radius: 10px; padding: 20px; margin: 15px 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;'>
+                <h3 style='margin: 0; color: white;'>📚 {topic_name}</h3>
+                <p style='margin: 5px 0; opacity: 0.9;'>⏱️ Estimated Time: {time_to_complete}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Content list in expandable sections
+            with st.expander(f"📖 View Resources for {topic_name}", expanded=False):
+                # Videos
+                videos = content_list.get("videos", [])
+                if videos:
+                    st.markdown("#### 🎥 Videos")
+                    for video in videos:
+                        title = video.get("title", "Untitled")
+                        url = video.get("url", "")
+                        description = video.get("description", "")
+                        if url:
+                            st.markdown(f"- [{title}]({url})")
+                            if description:
+                                st.caption(description)
+                        else:
+                            st.markdown(f"- {title}")
+                            if description:
+                                st.caption(description)
+                    st.markdown("---")
+                
+                # Blogs
+                blogs = content_list.get("blogs", [])
+                if blogs:
+                    st.markdown("#### 📝 Blogs & Articles")
+                    for blog in blogs:
+                        title = blog.get("title", "Untitled")
+                        url = blog.get("url", "")
+                        description = blog.get("description", "")
+                        if url:
+                            st.markdown(f"- [{title}]({url})")
+                            if description:
+                                st.caption(description)
+                        else:
+                            st.markdown(f"- {title}")
+                            if description:
+                                st.caption(description)
+                    st.markdown("---")
+                
+                # Books
+                books = content_list.get("books", [])
+                if books:
+                    st.markdown("#### 📚 Books")
+                    for book in books:
+                        title = book.get("title", "Untitled")
+                        author = book.get("author", "")
+                        description = book.get("description", "")
+                        book_display = f"**{title}**"
+                        if author:
+                            book_display += f" by {author}"
+                        st.markdown(f"- {book_display}")
+                        if description:
+                            st.caption(description)
+                    st.markdown("---")
+                
+                # Topics to study
+                topics = content_list.get("topics", [])
+                if topics:
+                    st.markdown("#### 🎯 Topics to Study")
+                    for topic in topics:
+                        st.markdown(f"- {topic}")
+    
+    # Add download JSON button
+    st.markdown("---")
+    json_str = json.dumps(json_data, indent=2)
+    st.download_button(
+        label="📥 Download Roadmap as JSON",
+        data=json_str,
+        file_name="roadmap.json",
+        mime="application/json"
+    )
+
+
 def render_roadmap(markdown_text: str):
     """Render the roadmap in a visually structured format"""
     if not markdown_text:
         return
-
+    
+    # Check if it's JSON
+    if is_json(markdown_text):
+        try:
+            json_data = json.loads(markdown_text)
+            render_roadmap_flowchart(json_data)
+            return
+        except:
+            pass
+    
+    # Otherwise render as markdown (backward compatibility)
     # Primary summary (up to first stage heading)
     sections = re.split(r"\n(?=## )", markdown_text.strip())
     summary = sections[0]
@@ -124,7 +277,16 @@ def process_roadmap_request(user_input, file_path=None, ocr_text=None, conversat
         if "clarification_count" in result:
             st.session_state.clarification_count = result.get("clarification_count", 0)
         if "final_roadmap" in result:
-            st.session_state.latest_roadmap = result.get("final_roadmap", "")
+            roadmap_text = result.get("final_roadmap", "")
+            st.session_state.latest_roadmap = roadmap_text
+            # Try to parse as JSON
+            if is_json(roadmap_text):
+                try:
+                    st.session_state.roadmap_json = json.loads(roadmap_text)
+                except:
+                    st.session_state.roadmap_json = None
+            else:
+                st.session_state.roadmap_json = None
         
         return result
     except Exception as e:
@@ -288,6 +450,11 @@ with col2:
         with st.expander("📄 Extracted OCR Text"):
             st.text(st.session_state.ocr_text[:500] + "..." if len(st.session_state.ocr_text) > 500 else st.session_state.ocr_text)
     
+    # Display JSON viewer if available
+    if st.session_state.roadmap_json:
+        with st.expander("📋 View Raw JSON"):
+            st.json(st.session_state.roadmap_json)
+    
     # Clear conversation button
     if st.button("🗑️ Clear Conversation"):
         st.session_state.conversation = []
@@ -296,6 +463,8 @@ with col2:
         st.session_state.ocr_text = ""
         st.session_state.clarification_count = 0
         st.session_state.roadmap_context = ""
+        st.session_state.latest_roadmap = ""
+        st.session_state.roadmap_json = None
         st.rerun()
 
 # Footer
