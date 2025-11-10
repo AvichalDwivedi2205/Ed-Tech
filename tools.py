@@ -173,7 +173,7 @@ class PerplexitySearchTool:
             search = self.client.search.create(
                 query=query,
                 max_results=min(max_results, 20),  # Perplexity allows 1-20 results
-                max_tokens_per_page=1024
+                max_tokens_per_page=2048  # Extract more content for better descriptions
             )
             
             # Extract results - search.results is a list of result objects
@@ -181,7 +181,7 @@ class PerplexitySearchTool:
             if not search.results:
                 raise ValueError("No results returned from Perplexity Search API")
             
-            # Format results with verified URLs
+            # Format results with verified URLs - make it VERY clear for LLM extraction
             formatted_results = []
             formatted_results.append(f"=== Search Results for: {query} ===\n")
             
@@ -194,17 +194,25 @@ class PerplexitySearchTool:
                 date = result.date if hasattr(result, 'date') else ''
                 
                 if url:
-                    formatted_results.append(f"{i}. [{title}]({url})")
+                    # Format in a way that's easy for LLM to extract
+                    formatted_results.append(f"RESULT {i}:")
+                    formatted_results.append(f"TITLE: {title}")
+                    formatted_results.append(f"URL: {url}")
                     if snippet:
-                        # Take first 200 chars of snippet
-                        snippet_preview = snippet[:200] + "..." if len(snippet) > 200 else snippet
-                        formatted_results.append(f"   Description: {snippet_preview}")
+                        # Use more of the snippet for better context
+                        snippet_text = snippet[:400] + "..." if len(snippet) > 400 else snippet
+                        formatted_results.append(f"DESCRIPTION: {snippet_text}")
                     if date:
-                        formatted_results.append(f"   Date: {date}")
-                    formatted_results.append("")
+                        formatted_results.append(f"DATE: {date}")
+                    formatted_results.append("")  # Empty line between results
             
-            formatted_results.append("\n=== IMPORTANT: Only use URLs from VERIFIED CITATIONS above ===\n")
-            formatted_results.append("Do NOT invent or make up URLs. Use only the URLs provided in citations.")
+            formatted_results.append("\n=== IMPORTANT INSTRUCTIONS ===")
+            formatted_results.append("1. Extract URLs EXACTLY as shown above (copy them verbatim)")
+            formatted_results.append("2. Use the TITLE as the title field")
+            formatted_results.append("3. Use the DESCRIPTION to understand what the resource teaches")
+            formatted_results.append("4. Create a brief description explaining what topics this resource covers")
+            formatted_results.append("5. Only use URLs from the VERIFIED CITATIONS above")
+            formatted_results.append("6. Do NOT invent or make up URLs")
             
             return "\n".join(formatted_results)
             

@@ -265,7 +265,8 @@ def process_roadmap_request(user_input, file_path=None, ocr_text=None, conversat
             "ocr_text": ocr_text or "",
             "roadmap_context": st.session_state.get("roadmap_context", ""),
             "actions": [],
-            "final_roadmap": ""
+            "final_roadmap": "",
+            "waiting_for_response": False  # Reset waiting flag when user responds
         }
         
         # Run the agent graph

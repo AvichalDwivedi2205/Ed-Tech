@@ -24,6 +24,7 @@ class AgentState(TypedDict):
     roadmap_context: str
     actions: Annotated[list, lambda x, y: x + y]  # Track actions for UI
     final_roadmap: str
+    waiting_for_response: bool  # Track if we're waiting for user response
 
 
 class RoadmapGeneratorAgent:
@@ -117,12 +118,34 @@ class RoadmapGeneratorAgent:
         """Determine if OCR should run"""
         ocr_text = state.get("ocr_text", "")
         user_input = state.get("user_input", "")
+        clarification_count = state.get("clarification_count", 0)
+        messages = state.get("messages", [])
         
         if ocr_text:
             return "ocr"
         
-        # Check if input needs clarification
+        # If we're in an ongoing conversation (clarification_count > 0), skip this node
+        # The should_continue_clarifying node will handle the routing
+        if clarification_count > 0:
+            return "clarify"
+        
+        # First time user input - check if we need to ask clarification questions
+        # Always ask at least one clarification question (especially about teaching style)
+        
+        # Get all user messages to check if we have teaching style
+        user_messages = [msg.content for msg in messages if isinstance(msg, HumanMessage)]
+        all_user_input = "\n".join(user_messages) if user_messages else user_input
+        
+        # If we don't have teaching style info, we need clarification
+        if not self._has_all_required_info(all_user_input):
+            return "clarify"
+        
+        # If input is not specific enough, clarify
         if user_input and not self._is_input_specific(user_input):
+            return "clarify"
+        
+        # If we haven't asked any questions yet, ask at least one
+        if clarification_count == 0:
             return "clarify"
         
         return "generate"
@@ -215,6 +238,8 @@ class RoadmapGeneratorAgent:
         prompt = ChatPromptTemplate.from_messages([
             SystemMessage(content=f"""You are a helpful roadmap generator assistant. Your goal is to understand exactly what roadmap the user needs.
 
+Current clarification round: {clarification_count} (you have asked {clarification_count} questions so far)
+
 {context}
 
 Conversation so far:
@@ -222,26 +247,29 @@ Conversation so far:
 
 {question_focus}
 
-Based on the conversation, determine if you need more information to generate a comprehensive roadmap. Ask ONE clear, specific question that will help you understand:
-1. Their preferred teaching/learning style (CRITICAL - must be asked first if not already answered)
-2. What specific topic/subject they want to learn
-3. Their current skill level (beginner/intermediate/advanced)
-4. Their learning goals (career change, skill improvement, project-based, etc.)
-5. Time constraints or preferred learning pace
-6. Specific areas of focus within the topic
+CRITICAL INSTRUCTIONS:
+- If this is clarification round 0 (first question), you MUST ask a question. DO NOT say "READY_TO_GENERATE" yet.
+- You MUST ask about teaching/learning style preference FIRST if it hasn't been mentioned.
+- Ask ONE clear, specific question that will help you understand:
+  1. Their preferred teaching/learning style (CRITICAL - must be asked first if not already answered)
+  2. What specific topic/subject they want to learn
+  3. Their current skill level (beginner/intermediate/advanced)
+  4. Their learning goals (career change, skill improvement, project-based, etc.)
+  5. Time constraints or preferred learning pace
+  6. Specific areas of focus within the topic
 
 If the user has provided a roadmap document, ask questions to clarify:
 - What format they want the roadmap in
 - Any modifications or additions they want
 - Specific focus areas
 
-IMPORTANT: Only respond with "READY_TO_GENERATE" if you have ALL the following information:
-- Teaching/learning style preference
+ONLY respond with "READY_TO_GENERATE" if you have ALL the following information AND this is NOT the first question (clarification round > 0):
+- Teaching/learning style preference (explicitly mentioned)
 - Specific topic/subject
 - Current skill level
 - Learning goals
 
-Otherwise, ask a question."""),
+If this is clarification round 0, you MUST ask a question. Do not skip this step."""),
             MessagesPlaceholder(variable_name="messages")
         ])
         
@@ -265,13 +293,19 @@ Otherwise, ask a question."""),
             **state,
             "clarification_count": clarification_count + 1,
             "actions": actions,
-            "messages": messages + [AIMessage(content=clarification_question)]
+            "messages": messages + [AIMessage(content=clarification_question)],
+            "waiting_for_response": True  # Set flag to wait for user
         }
     
     def should_continue_clarifying(self, state: AgentState) -> Literal["clarify", "generate", "end"]:
         """Determine if we should continue clarifying or generate roadmap"""
         clarification_count = state.get("clarification_count", 0)
         messages = state.get("messages", [])
+        waiting_for_response = state.get("waiting_for_response", False)
+        
+        # If we're waiting for user response, end here
+        if waiting_for_response:
+            return "end"
         
         # Check if last message was "READY_TO_GENERATE"
         if messages and isinstance(messages[-1], AIMessage):
@@ -284,12 +318,6 @@ Otherwise, ask a question."""),
         
         # Count user messages vs AI clarification questions
         user_messages = [msg for msg in messages if isinstance(msg, HumanMessage)]
-        ai_messages = [msg for msg in messages if isinstance(msg, AIMessage)]
-        
-        # If we just asked a question, wait for user response (return "end" to pause)
-        # In Streamlit, this will pause and wait for next user input
-        if len(ai_messages) > len(user_messages):
-            return "end"
         
         # If user has responded to our question
         if len(user_messages) > 0:
@@ -342,17 +370,36 @@ Otherwise, ask a question."""),
         
         if search_query:
             try:
-                search_results = self.search_tool.run(search_query)
+                # General search for the topic - get more results
+                search_results = self.search_tool.run(search_query, max_results=15)
                 actions.append({"type": "success", "message": "Web search completed"})
             except Exception as e:
                 actions.append({"type": "error", "message": f"Search failed: {str(e)}"})
             
-            # Additional search focused on video content
+            # Additional search focused on video content with specific topics
             try:
-                video_results = self.search_tool.run(f"{search_query} YouTube playlist tutorial")
+                video_results = self.search_tool.run(f"{search_query} YouTube tutorial course", max_results=15)
                 actions.append({"type": "success", "message": "Video resources search completed"})
             except Exception as e:
                 actions.append({"type": "error", "message": f"Video search failed: {str(e)}"})
+            
+            # Search for blogs and articles
+            try:
+                blog_results = self.search_tool.run(f"{search_query} blog article tutorial guide", max_results=15)
+                if blog_results:
+                    search_results += f"\n\n=== ADDITIONAL BLOG/ARTICLE SEARCH RESULTS ===\n{blog_results[:2000]}"
+                actions.append({"type": "success", "message": "Blog resources search completed"})
+            except Exception as e:
+                actions.append({"type": "error", "message": f"Blog search failed: {str(e)}"})
+            
+            # Search for books specifically
+            try:
+                book_results = self.search_tool.run(f"{search_query} book textbook reference guide", max_results=10)
+                if book_results:
+                    search_results += f"\n\n=== BOOK SEARCH RESULTS ===\n{book_results[:1500]}"
+                actions.append({"type": "success", "message": "Book resources search completed"})
+            except Exception as e:
+                actions.append({"type": "error", "message": f"Book search failed: {str(e)}"})
         
         # Use scraper tool for trusted sources
         actions.append({"type": "scraping", "message": "Scraping MIT OpenCourseWare and trusted sources..."})
@@ -365,14 +412,14 @@ Otherwise, ask a question."""),
         except Exception as e:
             actions.append({"type": "error", "message": f"Scraping failed: {str(e)}"})
         
-        # Build final prompt
+        # Build final prompt - include MORE search results for better resource matching
         context_text = "\n\n".join(context_parts)
         if search_results:
-            context_text += f"\n\nWeb Search Results:\n{search_results[:2000]}"
+            context_text += f"\n\n=== GENERAL WEB SEARCH RESULTS ===\n{search_results[:4000]}"
         if video_results:
-            context_text += f"\n\nVideo Search Results:\n{video_results[:2000]}"
+            context_text += f"\n\n=== VIDEO SEARCH RESULTS (YouTube, tutorials, courses) ===\n{video_results[:4000]}"
         if scraper_results:
-            context_text += f"\n\nScraped Content from Trusted Sources:\n{scraper_results[:2000]}"
+            context_text += f"\n\n=== TRUSTED SOURCES (MIT OCW, etc.) ===\n{scraper_results[:2000]}"
         
         actions.append({"type": "generating", "message": "Generating comprehensive roadmap..."})
         
@@ -393,16 +440,15 @@ JSON Structure Required:
     "TopicName": "<name of the subtopic/topic>",
     "ContentList": {{
       "videos": [
-        {{"title": "<title>", "url": "<url from VERIFIED CITATIONS only>", "description": "<brief description>"}},
-        ...
+        {{"title": "<exact title from search results>", "url": "<exact URL from VERIFIED CITATIONS>", "description": "<explain what topics this video teaches and what the user will learn>"}},
+        {{"title": "<exact title from search results>", "url": "<exact URL from VERIFIED CITATIONS>", "description": "<explain what topics this video teaches and what the user will learn>"}}
       ],
       "blogs": [
-        {{"title": "<title>", "url": "<url from VERIFIED CITATIONS only>", "description": "<brief description>"}},
-        ...
+        {{"title": "<exact title from search results>", "url": "<exact URL from VERIFIED CITATIONS>", "description": "<explain what topics this blog/article teaches and what the user will learn>"}},
+        {{"title": "<exact title from search results>", "url": "<exact URL from VERIFIED CITATIONS>", "description": "<explain what topics this blog/article teaches and what the user will learn>"}}
       ],
       "books": [
-        {{"title": "<title>", "author": "<author if available>", "description": "<brief description>"}},
-        ...
+        {{"title": "<exact title from search results>", "author": "<author if available>", "description": "<explain what topics this book covers and what the user will learn>"}}
       ],
       "topics": [
         "<specific topic/concept to study>",
@@ -423,11 +469,45 @@ Requirements:
    - A clear TopicName
    - ContentList with videos, blogs, books, and topics to study
    - SuggestedTimeToComplete estimate
-3. CRITICAL: Only use URLs from the "VERIFIED CITATIONS" section in search results. Do NOT invent URLs.
-4. If a URL is not available in citations, use empty string "" for url field.
-5. Include 2-3 videos, 2-3 blogs, and 1-2 books per subtopic when available.
-6. List specific topics/concepts to study in the "topics" array.
-7. TeachingStyle should reflect the user's preference (visual, hands-on, theoretical, practical, project-based, video-based, reading-based, or mixed).
+3. CRITICAL RESOURCE MATCHING: Each subtopic MUST have resources (videos, blogs, books) that are SPECIFICALLY relevant to the topics listed in that subtopic's "topics" array. 
+   - DO NOT use generic resources for all subtopics
+   - Match resources from the search results to each subtopic based on the specific topics/concepts in that subtopic
+   - For example, if Subtopic1 has topics ["neural networks", "backpropagation"], find videos/blogs/books specifically about neural networks and backpropagation, NOT generic machine learning resources
+   - Each subtopic should have DIFFERENT resources tailored to its specific topics
+4. CRITICAL URL EXTRACTION: 
+   - Extract URLs EXACTLY as shown in the VERIFIED CITATIONS sections above
+   - Copy URLs verbatim - do not modify them
+   - Each resource MUST have a valid URL from the search results
+   - If you cannot find a URL for a resource in the search results, use empty string "" but try to find alternatives
+5. CRITICAL DESCRIPTION REQUIREMENT:
+   - For each video/blog/book, provide a "description" field that explains:
+     * What specific topics/concepts this resource teaches
+     * What the user will learn from this resource
+     * How it relates to the subtopic's topics
+   - Example: "description": "This video covers the fundamentals of discrete-time signals, sampling theorem, and aliasing. Perfect for understanding how analog signals are converted to digital format."
+   - Make descriptions specific and informative - explain what the user will learn
+6. Include 2-3 videos, 2-3 blogs, and 1-2 books per subtopic when available, but ONLY if they match that subtopic's topics.
+7. List specific topics/concepts to study in the "topics" array for each subtopic.
+8. TeachingStyle should reflect the user's preference (visual, hands-on, theoretical, practical, project-based, video-based, reading-based, or mixed).
+
+IMPORTANT: When assigning resources to subtopics:
+- Read through the search results carefully
+- Match each resource to the subtopic whose topics it covers
+- Extract URLs EXACTLY as shown (copy verbatim from VERIFIED CITATIONS)
+- Create meaningful descriptions that explain what each resource teaches
+- If a video is about "linear regression", it should go in the subtopic that includes "linear regression" in its topics array
+- Do NOT put the same generic resources in all subtopics
+- Each subtopic's resources should be unique and relevant to that subtopic's specific topics
+- NEVER leave videos, blogs, or books arrays empty - always try to find relevant resources from the search results
+
+EXAMPLE of proper resource format:
+"videos": [
+  {{
+    "title": "Introduction to Digital Signal Processing",
+    "url": "https://www.youtube.com/watch?v=example123",
+    "description": "This comprehensive video tutorial covers the basics of DSP including discrete-time signals, sampling theorem, and quantization. Perfect for beginners starting with Subtopic1 topics."
+  }}
+]
 
 Output ONLY the JSON object, nothing else."""),
             MessagesPlaceholder(variable_name="messages")
@@ -438,8 +518,29 @@ Output ONLY the JSON object, nothing else."""),
         
         roadmap_text = response.content.strip()
         
+        # Check if response is empty
+        if not roadmap_text:
+            actions.append({"type": "error", "message": "LLM returned empty response"})
+            return {
+                **state,
+                "final_roadmap": "",
+                "actions": actions,
+                "messages": messages + [AIMessage(content="Failed to generate roadmap: empty response from AI. Please try again.")]
+            }
+        
         # Extract JSON from response (remove markdown code blocks if present)
         roadmap_json_str = self._extract_json_from_response(roadmap_text)
+        
+        # Check if extracted JSON is empty
+        if not roadmap_json_str or roadmap_json_str.strip() == "":
+            actions.append({"type": "error", "message": f"Failed to extract JSON from response. Raw response length: {len(roadmap_text)}"})
+            # Return the text as-is for debugging
+            return {
+                **state,
+                "final_roadmap": roadmap_text,
+                "actions": actions,
+                "messages": messages + [AIMessage(content=f"Roadmap generated but JSON extraction failed. Raw content:\n\n{roadmap_text[:1000]}")]
+            }
         
         # Parse and validate JSON
         try:
@@ -614,7 +715,8 @@ Output ONLY the JSON object, nothing else."""),
             "ocr_text": ocr_text or "",
             "roadmap_context": "",
             "actions": [],
-            "final_roadmap": ""
+            "final_roadmap": "",
+            "waiting_for_response": False
         }
         
         final_state = self.graph.invoke(initial_state)
