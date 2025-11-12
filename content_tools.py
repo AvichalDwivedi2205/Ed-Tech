@@ -55,10 +55,10 @@ class GraphGenerator:
         plot_type_lower = plot_type.lower()
         
         if plot_type_lower == "line":
-            return f"""
-```python
-import matplotlib.pyplot as plt
+            return f"""import matplotlib.pyplot as plt
 import numpy as np
+
+np.random.seed(42)  # For reproducibility
 
 # {data_description}
 # Generate data
@@ -73,14 +73,12 @@ plt.xlabel('{xlabel}')
 plt.ylabel('{ylabel}')
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
-plt.show()
-```
 """
         elif plot_type_lower == "scatter":
-            return f"""
-```python
-import matplotlib.pyplot as plt
+            return f"""import matplotlib.pyplot as plt
 import numpy as np
+
+np.random.seed(42)  # For reproducibility
 
 # {data_description}
 # Generate data
@@ -95,14 +93,12 @@ plt.xlabel('{xlabel}')
 plt.ylabel('{ylabel}')
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
-plt.show()
-```
 """
         elif plot_type_lower == "bar":
-            return f"""
-```python
-import matplotlib.pyplot as plt
+            return f"""import matplotlib.pyplot as plt
 import numpy as np
+
+np.random.seed(42)  # For reproducibility
 
 # {data_description}
 # Generate data
@@ -117,15 +113,13 @@ plt.xlabel('{xlabel}')
 plt.ylabel('{ylabel}')
 plt.grid(True, alpha=0.3, axis='y')
 plt.tight_layout()
-plt.show()
-```
 """
         elif plot_type_lower == "3d" or plot_type_lower == "3d_plot":
-            return f"""
-```python
-import matplotlib.pyplot as plt
+            return f"""import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
+
+np.random.seed(42)  # For reproducibility
 
 # {data_description}
 # Generate 3D data
@@ -143,14 +137,12 @@ ax.set_xlabel('{xlabel}')
 ax.set_ylabel('{ylabel}')
 ax.set_zlabel('Z')
 plt.tight_layout()
-plt.show()
-```
 """
         elif plot_type_lower == "contour":
-            return f"""
-```python
-import matplotlib.pyplot as plt
+            return f"""import matplotlib.pyplot as plt
 import numpy as np
+
+np.random.seed(42)  # For reproducibility
 
 # {data_description}
 # Generate 2D data
@@ -168,8 +160,6 @@ plt.title('{title}')
 plt.xlabel('{xlabel}')
 plt.ylabel('{ylabel}')
 plt.tight_layout()
-plt.show()
-```
 """
         else:
             # Default to line plot

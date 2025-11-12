@@ -1,53 +1,5 @@
 {
   "subtopic_id": "Subtopic1",
-  "questions": [
-    {
-      "question": "Microwave engineering primarily deals with frequencies ranging from 300 MHz to 300 GHz.",
-      "type": "true_false",
-      "correct_answer": "True",
-      "explanation": "The content explicitly states: 'Microwave engineering is a specialized field of electrical engineering concerned with the study and design of microwave circuits, components, and systems operating at frequencies generally ranging from 300 MHz to 300 GHz.'",
-      "difficulty": "easy"
-    },
-    {
-      "question": "Why are traditional lumped element models (resistors, capacitors, inductors) generally insufficient for accurately designing circuits at microwave frequencies?",
-      "type": "multiple_choice",
-      "options": [
-        "The speed of light is significantly slower at microwave frequencies.",
-        "Wavelengths become comparable to or smaller than the physical dimensions of circuit components.",
-        "Microwave signals only propagate in a vacuum.",
-        "Maxwell's equations do not apply at these frequencies."
-      ],
-      "correct_answer": "Wavelengths become comparable to or smaller than the physical dimensions of circuit components.",
-      "explanation": "The text explains: 'At microwave frequencies, wavelengths become comparable to or smaller than the physical dimensions of circuit components, leading to distributed effects becoming dominant. This means that components can no longer be accurately modeled as lumped elements (resistors, capacitors, inductors) with dimensions much smaller than a wavelength.'",
-      "difficulty": "medium"
-    },
-    {
-      "question": "Name two specific applications that operate within the S-band microwave frequency range.",
-      "type": "short_answer",
-      "correct_answer": "Wi-Fi, Bluetooth, microwave ovens, some radar (any two of these)",
-      "explanation": "The content lists for S-band (2-4 GHz): 'e.g., Wi-Fi, Bluetooth, microwave ovens, some radar'.",
-      "difficulty": "medium"
-    },
-    {
-      "question": "According to the fundamental relationship $c = f\\lambda$, what is the primary consequence of increasing frequency for microwave circuit design, and why?",
-      "type": "multiple_choice",
-      "options": [
-        "Wavelength increases, allowing for larger lumped components.",
-        "Wavelength decreases, requiring transmission line theory and electromagnetic field theory for analysis.",
-        "The speed of light changes, making traditional equations invalid.",
-        "Only digital signals can be processed effectively."
-      ],
-      "correct_answer": "Wavelength decreases, requiring transmission line theory and electromagnetic field theory for analysis.",
-      "explanation": "The text states: 'As frequency increases, wavelength decreases. At microwave frequencies, wavelengths become comparable to or smaller than the physical dimensions of circuit components, leading to distributed effects becoming dominant... Instead, transmission line theory and electromagnetic field theory become essential.'",
-      "difficulty": "hard"
-    },
-    {
-      "question": "Microwaves are positioned in the electromagnetic spectrum between conventional radio waves (VHF/UHF) and infrared light.",
-      "type": "true_false",
-      "correct_answer": "True",
-      "explanation": "The content specifies that microwaves are 'placing them between conventional radio waves and infrared light in the electromagnetic spectrum' and 'typically defined as frequencies above those used for conventional radio and television broadcasting (VHF/UHF) and below the infrared region.'",
-      "difficulty": "easy"
-    }
-  ],
-  "num_questions": 5
+  "questions": [],
+  "num_questions": 0
 }

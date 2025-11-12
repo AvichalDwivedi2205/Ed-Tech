@@ -4,9 +4,13 @@ Streamlit UI for Content Creator Agent
 import streamlit as st
 import json
 import os
+import shutil
+import re
 from pathlib import Path
 from content_agent import ContentCreatorAgent
 from content_context import ContextManager
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend for Streamlit
 
 # Page config
 st.set_page_config(
@@ -78,29 +82,109 @@ def render_latex_in_markdown(content: str):
         st.markdown(content)
 
 
+def execute_graph_code(code: str):
+    """Execute graph code and return the figure for display"""
+    try:
+        import matplotlib.pyplot as plt
+        import numpy as np
+        
+        # Create a namespace for code execution
+        namespace = {
+            'plt': plt,
+            'np': np,
+            '__builtins__': __builtins__
+        }
+        
+        # Try to import 3D if needed
+        try:
+            from mpl_toolkits.mplot3d import Axes3D
+            namespace['Axes3D'] = Axes3D
+        except:
+            pass
+        
+        # Clear any existing figures
+        plt.clf()
+        
+        # Execute the code
+        exec(code, namespace)
+        
+        # Get the current figure
+        fig = plt.gcf()
+        
+        # Check if figure has any axes
+        if len(fig.get_axes()) == 0:
+            return None
+        
+        return fig
+    except Exception as e:
+        st.error(f"Error executing graph code: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
+        return None
+
+
 def display_quiz(quiz_data):
-    """Display quiz questions"""
+    """Display quiz questions with reveal answer functionality"""
     if not quiz_data or not isinstance(quiz_data, list):
         st.warning("No quiz questions available")
         return
     
-    st.markdown("## 📝 Quiz Questions")
+    st.markdown("## 📝 Quiz")
+    st.markdown("---")
     
     for i, question in enumerate(quiz_data, 1):
-        with st.expander(f"Question {i} ({question.get('difficulty', 'unknown').upper()})"):
-            st.markdown(f"**{question.get('question', '')}**")
+        # Create a card-like container for each question
+        with st.container():
+            # Question header with difficulty badge
+            difficulty = question.get('difficulty', 'unknown').upper()
+            difficulty_colors = {
+                'EASY': '🟢',
+                'MEDIUM': '🟡',
+                'HARD': '🔴'
+            }
+            difficulty_icon = difficulty_colors.get(difficulty, '⚪')
+            
+            st.markdown(f"""
+            <div style='border: 2px solid #4CAF50; border-radius: 10px; padding: 20px; margin: 15px 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);'>
+                <h3 style='color: white; margin: 0;'>Question {i} {difficulty_icon} {difficulty}</h3>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Question text
+            st.markdown(f"### {question.get('question', '')}")
             
             q_type = question.get("type", "")
             
+            # Display options for multiple choice
             if q_type == "multiple_choice":
                 options = question.get("options", [])
-                st.markdown("**Options:**")
+                st.markdown("**Select an option:**")
                 for j, option in enumerate(options, 1):
-                    st.markdown(f"{j}. {option}")
+                    st.markdown(f"**{j}.** {option}")
+            
+            # Reveal answer button
+            answer_key = f"reveal_answer_{i}"
+            if answer_key not in st.session_state:
+                st.session_state[answer_key] = False
+            
+            if st.button(f"🔓 Reveal Answer", key=f"btn_{i}"):
+                st.session_state[answer_key] = True
+            
+            # Show answer if revealed
+            if st.session_state[answer_key]:
+                st.markdown("---")
+                st.markdown("### ✅ Answer")
+                
+                # Show correct answer
+                correct_answer = question.get('correct_answer', '')
+                st.success(f"**Correct Answer:** {correct_answer}")
+                
+                # Show explanation
+                explanation = question.get('explanation', '')
+                if explanation:
+                    st.info(f"**Explanation:** {explanation}")
             
             st.markdown("---")
-            st.markdown(f"**Correct Answer:** {question.get('correct_answer', '')}")
-            st.markdown(f"**Explanation:** {question.get('explanation', '')}")
 
 
 # Main UI
@@ -157,6 +241,18 @@ with st.sidebar:
         st.session_state.generated_content = None
         st.session_state.generated_quiz = None
         st.rerun()
+    
+    # Delete generated content button
+    if st.button("🗑️ Delete All Generated Content", help="Delete all generated content files"):
+        if os.path.exists("generated_content"):
+            try:
+                shutil.rmtree("generated_content")
+                st.success("✅ All generated content deleted!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error deleting content: {str(e)}")
+        else:
+            st.info("No generated content to delete")
 
 # Main content area
 if st.session_state.roadmap_json:
@@ -320,11 +416,65 @@ if st.session_state.roadmap_json:
             if st.session_state.get("generated_graphs"):
                 st.markdown("---")
                 st.markdown("## 📊 Generated Graphs")
+                
                 for i, graph in enumerate(st.session_state.generated_graphs, 1):
-                    with st.expander(f"Graph {i}: {graph.get('title', 'Untitled')}"):
-                        st.markdown(f"**Type:** {graph.get('type', 'unknown')}")
-                        st.markdown(f"**Description:** {graph.get('description', '')}")
-                        st.code(graph.get('code', ''), language='python')
+                    graph_title = graph.get('title', f'Graph {i}')
+                    graph_type = graph.get('type', 'unknown')
+                    graph_description = graph.get('description', '')
+                    graph_code = graph.get('code', '')
+                    
+                    # Create a card for each graph
+                    st.markdown(f"""
+                    <div style='border: 2px solid #2196F3; border-radius: 10px; padding: 15px; margin: 15px 0; background-color: #f0f8ff;'>
+                        <h3 style='color: #2196F3; margin: 0;'>📈 {graph_title}</h3>
+                        <p style='color: #666; margin: 5px 0;'><strong>Type:</strong> {graph_type}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    if graph_description:
+                        st.markdown(f"**Description:** {graph_description}")
+                    
+                    # Execute and display the graph
+                    if graph_code:
+                        # Clean the code - remove markdown code blocks if present
+                        clean_code = re.sub(r'```python\s*', '', graph_code)
+                        clean_code = re.sub(r'```\s*$', '', clean_code)
+                        clean_code = clean_code.strip()
+                        
+                        # Remove plt.show() if present
+                        clean_code = re.sub(r'plt\.show\(\)\s*', '', clean_code)
+                        
+                        # Ensure imports are present
+                        if 'import matplotlib.pyplot' not in clean_code:
+                            clean_code = 'import matplotlib.pyplot as plt\n' + clean_code
+                        if 'import numpy' not in clean_code:
+                            clean_code = 'import numpy as np\n' + clean_code
+                        
+                        # Add random seed for reproducibility if not present
+                        if 'np.random.seed' not in clean_code and 'random.seed' not in clean_code:
+                            # Insert after numpy import
+                            clean_code = clean_code.replace('import numpy as np', 'import numpy as np\nnp.random.seed(42)')
+                        
+                        # Execute and display graph
+                        try:
+                            fig = execute_graph_code(clean_code)
+                            if fig and len(fig.get_axes()) > 0:
+                                st.pyplot(fig, use_container_width=True)
+                            else:
+                                st.warning("Could not generate graph. Showing code instead:")
+                                st.code(clean_code, language='python')
+                        except Exception as e:
+                            st.error(f"Error displaying graph: {str(e)}")
+                            import traceback
+                            with st.expander("Error Details"):
+                                st.code(traceback.format_exc())
+                            st.code(clean_code, language='python')
+                    
+                    # Show code in expandable section
+                    with st.expander(f"📄 View Code for {graph_title}", expanded=False):
+                        st.code(graph_code if graph_code else "No code available", language='python')
+                    
+                    st.markdown("---")
             
             # Display quiz
             if st.session_state.generated_quiz:

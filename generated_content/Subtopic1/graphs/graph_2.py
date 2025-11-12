@@ -1,26 +1,38 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Data representing hypothetical 'design complexity index' for different frequency bands
-# This data is generated to align with the context of increasing complexity at higher frequencies.
-frequency_bands = ['Radio Freq', 'Microwave', 'Millimeter Wave', 'Terahertz', 'Infrared']
-design_complexity = [3.0, 5.5, 7.8, 9.1, 9.8] # Values increasing with frequency to reflect complexity
+np.random.seed(42)  # For reproducibility
 
-# Create the bar plot
-plt.figure(figsize=(10, 6))
-plt.bar(frequency_bands, design_complexity, color='skyblue')
+# Generate data based on the description
+# Problem Statement: A microwave signal has a frequency of 2.4 GHz.
+# Compare its wavelength in free space to its wavelength in a Teflon (epsilon_r = 2.1) filled waveguide.
 
-# Set labels and title
-plt.xlabel('X', fontsize=12)
-plt.ylabel('Y', fontsize=12)
-plt.title('Visualization 2', fontsize=14, fontweight='bold')
+frequency = 2.4e9  # 2.4 GHz in Hz
+speed_of_light_free_space = 3e8  # m/s
+relative_permittivity_teflon = 2.1
 
-# Customize ticks for better readability
-plt.xticks(rotation=45, ha='right')
-plt.yticks(np.arange(0, 11, 1)) # Assuming Y values are between 0 and 10
+# Wavelength in free space (lambda_0 = c / f)
+wavelength_free_space = speed_of_light_free_space / frequency
 
-# Add grid for better readability
-plt.grid(axis='y', linestyle='--', alpha=0.7)
+# Wavelength in Teflon (lambda_medium = c / (f * sqrt(epsilon_r)))
+wavelength_teflon = speed_of_light_free_space / (frequency * np.sqrt(relative_permittivity_teflon))
 
-plt.tight_layout() # Adjust layout to prevent labels from overlapping
-plt.show()
+wavelength_values = [wavelength_free_space, wavelength_teflon]
+medium_labels = ['Free Space', 'Teflon']
+
+# Create plot
+fig, ax = plt.subplots(figsize=(8, 6))
+
+ax.bar(medium_labels, wavelength_values, color=['skyblue', 'lightcoral'])
+
+ax.set_title('Visualization 2')
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+
+# Add the description to the plot
+description_text = "le 3: Comparing Wavelengths\nProblem Statement: A microwave signal has a frequency of 2.4 GHz. Compare its wavelength in free space to its wavelength in a Teflon ($\epsilon_r = 2.1$) filled waveg"
+plt.figtext(0.02, 0.02, description_text, wrap=True, horizontalalignment='left', fontsize=9,
+            bbox=dict(facecolor='wheat', alpha=0.5, edgecolor='none'))
+
+plt.tight_layout()
+# Do NOT include 

@@ -153,14 +153,31 @@ Return a JSON array of graph requirements, each with:
 
 Generate Python code using matplotlib to create a {graph_type} plot.
 
-Requirements:
+CRITICAL REQUIREMENTS:
 - Graph type: {graph_type}
 - Title: {title}
 - X-axis label: {xlabel}
 - Y-axis label: {ylabel}
 - Description: {description}
+- MUST include: np.random.seed(42) for reproducibility
+- Generate realistic data that matches the description
+- DO NOT include plt.show() - the code will be executed in Streamlit
+- Return ONLY the Python code, no markdown code blocks, no explanations
 
-Generate realistic data that matches the description. Return ONLY the Python code, no explanations."""),
+Code structure:
+import matplotlib.pyplot as plt
+import numpy as np
+
+np.random.seed(42)  # For reproducibility
+
+# Generate data
+[your data generation code]
+
+# Create plot
+[your plotting code]
+
+plt.tight_layout()
+# Do NOT include plt.show()"""),
                 HumanMessage(content=f"Generate matplotlib code for: {description}")
             ])
             
@@ -206,23 +223,28 @@ Generate realistic data that matches the description. Return ONLY the Python cod
         for graph in generated_graphs:
             code = graph.get("code", "")
             
-            # Basic validation
+            # Basic validation and fixes
             has_import = "import matplotlib" in code or "import numpy" in code
-            has_plot = any(keyword in code for keyword in ["plt.plot", "plt.scatter", "plt.bar", "plot_surface", "contour"])
-            has_show = "plt.show()" in code or "plt.savefig" in code
+            has_plot = any(keyword in code for keyword in ["plt.plot", "plt.scatter", "plt.bar", "plot_surface", "contour", "ax.plot", "ax.scatter"])
             
-            if has_import and (has_plot or has_show):
-                validated_graphs.append(graph)
-            else:
-                # Try to fix code
-                if not has_import:
-                    code = "import matplotlib.pyplot as plt\nimport numpy as np\n\n" + code
-                if not has_show:
-                    code = code + "\nplt.show()"
-                
-                graph["code"] = code
-                validated_graphs.append(graph)
-                actions.append({"type": "warning", "message": f"Fixed code for {graph.get('title', 'graph')}"})
+            # Fix code if needed
+            if not has_import:
+                code = "import matplotlib.pyplot as plt\nimport numpy as np\n\n" + code
+            
+            # Remove plt.show() if present (not needed for Streamlit)
+            code = re.sub(r'plt\.show\(\)\s*', '', code)
+            
+            # Add random seed if not present
+            if 'np.random.seed' not in code and 'random.seed' not in code:
+                # Insert after numpy import
+                code = code.replace('import numpy as np', 'import numpy as np\nnp.random.seed(42)')
+            
+            # Ensure tight_layout is present
+            if 'plt.tight_layout()' not in code and 'fig.tight_layout()' not in code:
+                code = code.rstrip() + '\nplt.tight_layout()'
+            
+            graph["code"] = code
+            validated_graphs.append(graph)
         
         return {
             **state,

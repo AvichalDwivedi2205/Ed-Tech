@@ -1,30 +1,47 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Generate realistic data for "modes" and their associated "strength"
-# X-axis: Represents different "modes" (e.g., mode identifiers)
-# Y-axis: Represents a quantitative characteristic of each mode, such as amplitude, power, or presence.
-num_modes = 7
-modes = [f'Mode {i+1}' for i in range(num_modes)]
-np.random.seed(42) # for reproducibility
-# Simulate varying "amplitudes" or "strengths" for each mode
-mode_strengths = np.random.rand(num_modes) * 8 + 2 # Values between 2 and 10
+np.random.seed(42)  # For reproducibility
 
-# Create the bar plot
-plt.figure(figsize=(10, 6))
-plt.bar(modes, mode_strengths, color='teal', alpha=0.8)
+# Generate data
+# Simulate a grid representing an area scanned by a satellite
+x = np.linspace(-10, 10, 50)
+y = np.linspace(-10, 10, 50)
+X, Y = np.meshgrid(x, y)
 
-# Set title and labels
-plt.title('Visualization 3')
-plt.xlabel('X') # As requested, representing different modes
-plt.ylabel('Y') # As requested, representing mode strength/amplitude
+# Z will represent a 'surface property index' or 'polarization response'
+# We'll create a base undulating surface, similar to terrain
+Z = np.sin(np.sqrt(X**2 + Y**2) / 2) * 2 + np.cos(X/3) + np.sin(Y/4)
 
-# Add the description as a text box below the plot
-description = "cs restrict the possible field configurations to specific \"modes.\" These modes describe the spatial distribution of the electric and magnetic fields perpendicular to the direction of propagation."
-plt.figtext(0.5, 0.01, description, ha="center", fontsize=9, bbox={"facecolor":"lightgray", "alpha":0.7, "pad":5})
+# Add features that could represent different surface properties detectable by polarization
+# For instance, a 'smooth' area (lower Z)
+Z -= 2 * np.exp(-((X - 4)**2 + (Y - 3)**2) / 5)
 
-# Adjust layout to make space for the description
-plt.tight_layout(rect=[0, 0.07, 1, 1])
+# A 'rough' or 'anomalous' area (higher Z)
+Z += 3 * np.exp(-((X + 5)**2 + (Y + 2)**2) / 7)
 
-# Display the plot
-plt.show()
+# Another feature, perhaps a water body or different land cover
+Z += 1.5 * np.exp(-((X + 1)**2 + (Y - 6)**2) / 3)
+
+# Create plot
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection='3d')
+
+# Plot the surface
+# The colormap can represent the varying intensity or type of polarization signal
+surf = ax.plot_surface(X, Y, Z, cmap='viridis', edgecolor='none', alpha=0.9)
+
+# Set labels and title
+ax.set_title('Visualization 3')
+ax.set_xlabel('X (Spatial Coordinate)')
+ax.set_ylabel('Y (Spatial Coordinate)')
+ax.set_zlabel('Polarization-Derived Surface Index')
+
+# Add a color bar which maps values to colors.
+fig.colorbar(surf, shrink=0.5, aspect=5, label='Surface Property Value')
+
+# Adjust view angle for better visualization
+ax.view_init(elev=30, azim=-60)
+
+plt.tight_layout()
+# Do NOT include 
