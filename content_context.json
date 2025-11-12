@@ -1,0 +1,753 @@
+{
+  "roadmap_json": {
+    "TeachingStyle": "normal",
+    "Subtopic1": {
+      "TopicName": "Fundamentals of Microwave Engineering & Electromagnetics Review",
+      "ContentList": {
+        "videos": [
+          {
+            "title": "Introduction to Microwave Engineering FULL LECTURE in 1.30 Hour. See the description for Chapters",
+            "url": "https://www.youtube.com/watch?v=PypFdhouA_o",
+            "description": "This full lecture introduces microwave engineering, covering different frequency bands, their applications, and explaining why standard circuit theory is insufficient at microwave frequencies. It's an excellent starting point for understanding the scope and challenges of the field."
+          },
+          {
+            "title": "#78: RF & Microwave Engineering: An Introduction for Students",
+            "url": "https://www.youtube.com/watch?v=A9SNdF7UP18",
+            "description": "This video provides an introduction to RF and microwave engineering specifically for electrical engineering students. It clarifies what the field entails, discusses associated applications, and sets the stage for deeper learning, helping you connect your existing electronics knowledge to this new domain."
+          }
+        ],
+        "blogs": [
+          {
+            "title": "Relevance",
+            "url": "https://en.wikipedia.org/wiki/Microwave_engineering",
+            "description": "This Wikipedia article offers a foundational understanding of microwave engineering, defining its scope, fundamental principles, and the distinct characteristics due to short wavelengths that differentiate it from general electronic engineering. It's a good overview for starting your journey."
+          },
+          {
+            "title": "Microwave Engineering Tutorial",
+            "url": "https://www.tutorialspoint.com/microwave_engineering/index.htm",
+            "description": "This tutorial introduces the field of microwave engineering, focusing on the design, development, and applications of components and systems using microwaves. It provides fundamental principles for analysis and measurement, serving as a comprehensive textual guide to the basics."
+          }
+        ],
+        "books": [
+          {
+            "title": "Fundamentals of Microwave and RF Design",
+            "author": "Michael Steer",
+            "description": "This open textbook covers the basic theory essential for microwave and RF design. It reviews core concepts that are crucial for understanding the behavior of electromagnetic fields at microwave frequencies, making it ideal for bridging your electronics background to microwave theory."
+          },
+          {
+            "title": "Microwave Engineering: Concepts and Fundamentals",
+            "author": "Khan",
+            "description": "This book provides a comprehensive understanding of underlying principles, covering active and passive aspects of microwaves. It delves into wave propagation, reflection, refraction, guided waves, and transmission lines, offering a solid theoretical foundation for the initial topics."
+          }
+        ],
+        "topics": [
+          "Introduction to Microwave Frequencies (spectrum, advantages, challenges)",
+          "Review of Maxwell's Equations (time-harmonic fields)",
+          "Plane Wave Propagation (TEM, TE, TM modes, polarization)",
+          "Reflection and Transmission at Material Interfaces",
+          "Skin Effect and Surface Resistance",
+          "Power and Energy in EM Fields (Poynting Vector)"
+        ]
+      },
+      "SuggestedTimeToComplete": "3-4 weeks"
+    },
+    "Subtopic2": {
+      "TopicName": "Transmission Line Theory",
+      "ContentList": {
+        "videos": [
+          {
+            "title": "Transmission Line Equations and Wave Equation of Transmission Line in Microwave Engineering",
+            "url": "https://www.youtube.com/watch?v=rNSPz3RZwDA",
+            "description": "This video clearly explains the fundamental transmission line equations and the wave equation, which are critical for understanding how signals propagate at microwave frequencies. It's essential for moving beyond lumped element circuit analysis."
+          },
+          {
+            "title": "Characteristics Impedance of Transmission Line in Microwave Engineering by Engineering Funda",
+            "url": "https://www.youtube.com/watch?v=5JxqbMNs76Y",
+            "description": "This tutorial focuses on the characteristic impedance of transmission lines, a key concept for understanding power transfer and reflections in microwave circuits. You will learn its definition and significance in microwave engineering."
+          }
+        ],
+        "blogs": [
+          {
+            "title": "Transmission Lines: From Lumped Element to Distributed Element Regimes - Technical Articles",
+            "url": "https://www.allaboutcircuits.com/technical-articles/transmission-lines-from-lumped-element-to-distributed-element-regimes/",
+            "description": "This article investigates the crucial distinction between treating circuits as lumped elements versus distributed elements, a fundamental shift when moving into microwave frequencies. It helps you understand why traditional circuit theory breaks down and distributed models are needed."
+          },
+          {
+            "title": "Lumped Circuit Analysis Vs Distributed Analysis",
+            "url": "https://rahsoft.com/2023/01/18/lumped-circuit-analysis-vs-distributed-analysis/",
+            "description": "This blog provides a basic understanding of the transmission line concept by comparing lumped and distributed analysis. It explains why transmission lines are used and the limitations of lumped components at higher frequencies, building on your electronics background."
+          },
+          {
+            "title": "Transmission Line Model - Microwave Encyclopedia",
+            "url": "https://www.microwaves101.com/encyclopedias/transmission-line-model",
+            "description": "This encyclopedia entry provides a foundational overview of transmission line models, characteristic impedances, and concepts like phase and group velocities. It serves as a comprehensive reference for the basic parameters and behavior of transmission lines."
+          }
+        ],
+        "books": [
+          {
+            "title": "2.2: Transmission Line Theory - Engineering LibreTexts",
+            "author": "Steer",
+            "description": "This section from an engineering textbook develops the theory of signal propagation on transmission lines. It covers how an RLCG circuit models a transmission line and provides a complete development of transmission line theory, crucial for in-depth understanding."
+          },
+          {
+            "title": "CHAPTER",
+            "author": "N/A",
+            "description": "This chapter is part of a larger work on Transmission Lines and Waveguides. Part I specifically focuses on 'Waves on transmission lines,' providing a detailed theoretical treatment of how electromagnetic waves behave on these structures."
+          }
+        ],
+        "topics": [
+          "Lumped vs. Distributed Circuit Elements",
+          "Transmission Line Equations (voltage/current waves, characteristic impedance)",
+          "Reflection Coefficient and VSWR (Voltage Standing Wave Ratio)",
+          "Input Impedance of Terminated Lines",
+          "The Smith Chart (impedance matching, transformation)",
+          "Single and Double Stub Matching Techniques"
+        ]
+      },
+      "SuggestedTimeToComplete": "4-5 weeks"
+    },
+    "Subtopic3": {
+      "TopicName": "Microwave Network Analysis & Passive Components",
+      "ContentList": {
+        "videos": [
+          {
+            "title": "Scattering Parameters | Why S Parameters in Microwave measurement? | Calculation of S Parameters",
+            "url": "https://www.youtube.com/watch?v=qQyXHFukeFE",
+            "description": "This video explains scattering parameters (S-parameters), their definition, properties, and why they are indispensable for microwave measurements. You will learn how to calculate them and understand their importance in characterizing microwave networks."
+          },
+          {
+            "title": "Scattering Parameters | Why S Parameters in Microwave measurement? | Calculation of S Parameters",
+            "url": "https://www.youtube.com/watch?v=-PZQm_404Js",
+            "description": "This tutorial provides another perspective on scattering parameters, detailing their basics, the reasons for their use in microwave measurements, and the methodologies for their calculation. It reinforces the concepts introduced in the previous video."
+          }
+        ],
+        "blogs": [
+          {
+            "title": "Scattering parameters",
+            "url": "https://en.wikipedia.org/wiki/Scattering_parameters",
+            "description": "This Wikipedia article defines scattering parameters (S-parameters) and explains how they describe the electrical behavior of linear electrical networks at high frequencies. It covers their utility in various branches of electrical engineering, particularly microwave engineering."
+          },
+          {
+            "title": "Introduction to Microwave Devices | Scattering Parameters | S - Parameters | Microwave Engineering",
+            "url": "https://www.youtube.com/watch?v=W5_xQ6JlfDw",
+            "description": "This resource, presented as a video description, explains the basics of microwave devices in relation to S-parameters. It clarifies how S-parameters represent linear characteristics and can be used to calculate gain, loss, impedance, and other network properties."
+          }
+        ],
+        "books": [
+          {
+            "title": "Scattering Parameters in Microwave Imaging (Chapter 3)",
+            "author": "N/A",
+            "description": "This book chapter is dedicated to scattering parameters within the context of microwave imaging. While specific to imaging, it provides a deep dive into the theoretical and practical aspects of S-parameters, enhancing your understanding of their application and significance."
+          }
+        ],
+        "topics": [
+          "S-Parameters (Scattering Parameters: definition, properties, measurement)",
+          "ABCD Parameters and T-Parameters (relation to S-parameters)",
+          "Microwave Resonators (cavity, dielectric)",
+          "Power Dividers and Couplers (Wilkinson, directional couplers)",
+          "Microwave Filters (design principles, types)",
+          "Attenuators and Phase Shifters"
+        ]
+      },
+      "SuggestedTimeToComplete": "4-5 weeks"
+    },
+    "Subtopic4": {
+      "TopicName": "Microwave Solid-State Devices",
+      "ContentList": {
+        "videos": [
+          {
+            "title": "Week 6-Lecture 26",
+            "url": "https://www.youtube.com/watch?v=1H4hUJMfzdM",
+            "description": "This lecture provides a detailed overview of various microwave diodes, including PN Junction, Varactor, Schottky, PIN, Tunnel, and Gunn Diodes. You will learn about their operating principles and specific applications in microwave circuits."
+          },
+          {
+            "title": "UNIT_5 PPT-MBM.pptx",
+            "url": "https://www.slideshare.net/MadhuriMulik1/unit5-pptmbmpptx",
+            "description": "This presentation discusses several solid-state microwave devices, such as varactor, PIN, Gunn, and IMPATT diodes. It covers their operational principles and typical applications, which is crucial for understanding how these devices function in microwave systems."
+          }
+        ],
+        "blogs": [
+          {
+            "title": "Microwave Diode: Introduction and Types",
+            "url": "https://www.utmel.com/blog/categories/diodes/microwave-diode-introduction-and-types",
+            "description": "This article introduces and categorizes various types of microwave diodes, including IMPATT, Schottky, Gunn, Varactor, and PIN diodes. It explains their characteristics and uses, providing a solid textual resource for understanding these components."
+          },
+          {
+            "title": "Lecture-11-Microwave-Semiconductor-Materials-and-Diodes.pdf",
+            "url": "https://www.clivepoole.com/wp-content/uploads/2016/07/Lecture-11-Microwave-Semiconductor-Materials-and-Diodes.pdf",
+            "description": "This lecture document covers various types of microwave diodes (Tunnel, IMPATT, TRAPATT, Gunn) and their equivalent circuits. It also touches upon semiconductor materials and fabrication processes, providing a comprehensive look at the underlying technology."
+          }
+        ],
+        "books": [
+          {
+            "title": "Lecture-11-Microwave-Semiconductor-Materials-and-Diodes.pdf",
+            "author": "N/A",
+            "description": "This PDF serves as a valuable reference, detailing different microwave diode types, their operating principles, and equivalent circuits. It's a focused resource for understanding the semiconductor physics and design considerations of these devices."
+          },
+          {
+            "title": "Slide 1",
+            "author": "N/A",
+            "description": "This presentation slide deck introduces microwave solid-state devices, explaining the limitations of traditional transistors at microwave frequencies and the necessity for specialized devices. It covers various diodes and their applications, offering a structured learning path."
+          }
+        ],
+        "topics": [
+          "Microwave Diodes (PIN, Varactor, Schottky, Gunn)",
+          "Microwave Transistors (MESFETs, HEMTs, BJTs for RF/microwave)",
+          "Microwave Amplifiers (small-signal, large-signal, stability)",
+          "Microwave Oscillators (VCOs, DROs)",
+          "Mixers (up-conversion, down-conversion)",
+          "Detectors"
+        ]
+      },
+      "SuggestedTimeToComplete": "5-6 weeks"
+    },
+    "Subtopic5": {
+      "TopicName": "Microwave Integrated Circuits & Antennas",
+      "ContentList": {
+        "videos": [
+          {
+            "title": "Microwave Communication: Lecture 38: Microstrip Line",
+            "url": "https://www.youtube.com/watch?v=Wk_w7TuH4KY",
+            "description": "This lecture introduces microstrip lines, explaining their characteristics and applications in microwave circuits. You will learn about their structure and how they function as transmission media at high frequencies."
+          },
+          {
+            "title": "''Microstrip Line'' Microwave and Radar Engineering Lecture 01 By Dr Ritish Kumar, AKGEC",
+            "url": "https://www.youtube.com/watch?v=OR75x_UpbAg",
+            "description": "This video focuses specifically on microstrip lines, highlighting their importance in microwave and radar engineering. It's a good resource for understanding the design and analysis of this common type of planar transmission line."
+          }
+        ],
+        "blogs": [
+          {
+            "title": "Ultimate Guide To Microstrip, Stripline And CPW In PCBs",
+            "url": "https://jhdpcb.com/blog/microstrip-vs-stripline-vs-coplanar-waveguide/",
+            "description": "This comprehensive guide compares microstrip, stripline, and coplanar waveguide (CPW) in PCBs. It explains their structures, characteristics, and applications, which is essential for understanding planar transmission lines in MICs."
+          },
+          {
+            "title": "Difference Between Coplanar Waveguide, Stripline, ...",
+            "url": "https://www.raypcb.com/coplanar-waveguide-vs-microstrip-vs-stripline/",
+            "description": "This article explores the differences between coplanar waveguide, microstrip, stripline, and other planar transmission lines. It details their unique characteristics and applications in high-frequency and microwave circuits."
+          },
+          {
+            "title": "Difference Among Coplanar Waveguide Microstrip, ...",
+            "url": "https://blog.pasternack.com/uncategorized/difference-between-coplanar-waveguide-microstrip-stripline-other-planar-transmission-lines-2/",
+            "description": "This blog post clarifies the distinctions between various planar transmission lines used for analog, RF, and digital signals. It covers their construction from conductive traces and dielectric materials, crucial for MIC design."
+          }
+        ],
+        "books": [
+          {
+            "title": "Books on Microwave Engineering",
+            "author": "N/A",
+            "description": "This resource page mentions a book that delves into microwave circuit theory, S-parameters, ABCD parameters, and the basic design parameters of planar transmission lines. It's a valuable reference for understanding MIC components."
+          },
+          {
+            "title": "Stripline-like Transmission Lines for Microwave Integrated C",
+            "author": "N/A",
+            "description": "This book provides exhaustive coverage of the analysis, design, and applications of planar transmission lines, starting from fundamental principles. It's an excellent resource for in-depth study of MICs and their constituent transmission line structures."
+          }
+        ],
+        "topics": [
+          "Planar Transmission Lines (Microstrip, Stripline, Coplanar Waveguide)",
+          "Fabrication Technologies for MICs (MMIC, Hybrid MIC)",
+          "Antenna Fundamentals (radiation patterns, gain, directivity, impedance)",
+          "Basic Antenna Types (dipoles, horns, patch antennas)",
+          "Antenna Arrays (phased arrays, beamforming)",
+          "Introduction to Radar and Communication Systems"
+        ]
+      },
+      "SuggestedTimeToComplete": "5-6 weeks"
+    }
+  },
+  "teaching_style": "normal",
+  "completed_subtopics": [
+    {
+      "subtopic_id": "Subtopic1",
+      "topic_name": "Fundamentals of Microwave Engineering & Electromagnetics Review",
+      "summary": "This comprehensive module will introduce you to the fundamental concepts of microwave engineering and provide a thorough review of the underlying electromagnetics principles essential for understanding high-frequency phenomena. We will delve into the unique characteristics of microwave frequencies, revisit Maxwell's equations in their time-harmonic form, explore plane wave propagation, analyze reflection and transmission at material interfaces, understand the skin effect, and quantify power and ...",
+      "key_concepts": [
+        "Introduction to Microwave Frequencies (spectrum, advantages, challenges)",
+        "Review of Maxwell's Equations (time-harmonic fields)",
+        "Plane Wave Propagation (TEM, TE, TM modes, polarization)",
+        "Reflection and Transmission at Material Interfaces",
+        "Skin Effect and Surface Resistance",
+        "Power and Energy in EM Fields (Poynting Vector)"
+      ],
+      "equations": [
+        "c = f\\lambda",
+        "\\nabla \\cdot \\mathbf{D} = \\rho",
+        "\\nabla \\cdot \\mathbf{B} = 0",
+        "\\nabla \\times \\mathbf{E} = -\\frac{\\partial \\mathbf{B}}{\\partial t}",
+        "\\nabla \\times \\mathbf{H} = \\mathbf{J} + \\frac{\\partial \\mathbf{D}}{\\partial t}",
+        "F(x, y, z, t) = \\text{Re}\\{ \\mathbf{F}(x, y, z) e^{j\\omega t} \\}",
+        "\\nabla \\cdot \\mathbf{D} = \\rho \\implies \\nabla \\cdot (\\epsilon \\mathbf{E}) = \\rho",
+        "\\nabla \\cdot \\mathbf{B} = 0 \\implies \\nabla \\cdot (\\mu \\mathbf{H}) = 0",
+        "\\nabla \\times \\mathbf{E} = -\\frac{\\partial \\mathbf{B}}{\\partial t} \\implies \\nabla \\times \\mathbf{E} = -j\\omega \\mathbf{B} = -j\\omega \\mu \\mathbf{H}",
+        "\\nabla \\times \\mathbf{H} = \\mathbf{J} + \\frac{\\partial \\mathbf{D}}{\\partial t} \\implies \\nabla \\times \\mathbf{H} = \\sigma \\mathbf{E} + j\\omega \\mathbf{D} = (\\sigma + j\\omega \\epsilon) \\mathbf{E}",
+        "\\nabla \\times \\mathbf{H} = \\sigma_c \\mathbf{E}",
+        "\\nabla \\times \\mathbf{E} = \\left| \\begin{array}{ccc} \\mathbf{\\hat{x}} & \\mathbf{\\hat{y}} & \\mathbf{\\hat{z}} \\\\ \\frac{\\partial}{\\partial x} & \\frac{\\partial}{\\partial y} & \\frac{\\partial}{\\partial z} \\\\ E_x & 0 & 0 \\end{array} \\right|",
+        "\\nabla \\times \\mathbf{E} = \\mathbf{\\hat{y}} \\left( \\frac{\\partial E_x}{\\partial z} \\right)",
+        "\\frac{\\partial E_x}{\\partial z} = \\frac{\\partial}{\\partial z} (E_0 e^{-j\\beta z}) = E_0 (-j\\beta) e^{-j\\beta z} = -j\\beta E_x",
+        "\\mathbf{E}(z) = E_0 e^{-j\\beta z} \\mathbf{\\hat{e}}",
+        "\\mathbf{H}(z) = H_0 e^{-j\\beta z} \\mathbf{\\hat{h}}",
+        "\\eta = \\frac{E_0}{H_0} = \\sqrt{\\frac{\\mu}{\\epsilon}}",
+        "\\beta = \\omega \\sqrt{\\mu\\epsilon}",
+        "E_{tan1} = E_{tan2}",
+        "H_{tan1} = H_{tan2}",
+        "\\Gamma = \\frac{E_r}{E_i} = \\frac{\\eta_2 - \\eta_1}{\\eta_2 + \\eta_1}",
+        "\\tau = \\frac{E_t}{E_i} = \\frac{2\\eta_2}{\\eta_2 + \\eta_1} = 1 + \\Gamma",
+        "\\Gamma_{\\perp} = \\frac{E_{r\\perp}}{E_{i\\perp}} = \\frac{\\eta_2 \\cos \\theta_i - \\eta_1 \\cos \\theta_t}{\\eta_2 \\cos \\theta_i + \\eta_1 \\cos \\theta_t}",
+        "\\tau_{\\perp} = \\frac{E_{t\\perp}}{E_{i\\perp}} = \\frac{2\\eta_2 \\cos \\theta_i}{\\eta_2 \\cos \\theta_i + \\eta_1 \\cos \\theta_t}",
+        "\\Gamma_{\\parallel} = \\frac{E_{r\\parallel}}{E_{i\\parallel}} = \\frac{\\eta_2 \\cos \\theta_t - \\eta_1 \\cos \\theta_i}{\\eta_2 \\cos \\theta_t + \\eta_1 \\cos \\theta_i}",
+        "\\tau_{\\parallel} = \\frac{E_{t\\parallel}}{E_{i\\parallel}} = \\frac{2\\eta_2 \\cos \\theta_i}{\\eta_2 \\cos \\theta_t + \\eta_1 \\cos \\theta_i}",
+        "\\frac{\\sin \\theta_i}{\\sin \\theta_t} = \\frac{v_{p1}}{v_{p2}} = \\frac{\\eta_2}{\\eta_1} = \\sqrt{\\frac{\\mu_1 \\epsilon_1}{\\mu_2 \\epsilon_2}}",
+        "\\delta = \\frac{1}{\\sqrt{\\pi f \\mu \\sigma}}",
+        "R_s = \\frac{1}{\\sigma \\delta} = \\sqrt{\\frac{\\pi f \\mu}{\\sigma}}",
+        "\\mathbf{S} = \\mathbf{E} \\times \\mathbf{H}",
+        "\\oint_A (\\mathbf{E} \\times \\mathbf{H}) \\cdot d\\mathbf{A} = -\\frac{\\partial}{\\partial t} \\int_V \\left( \\frac{1}{2}\\epsilon |\\mathbf{E}|^2 + \\frac{1}{2}\\mu |\\mathbf{H}|^2 \\right) dV - \\int_V \\sigma |\\mathbf{E}|^2 dV",
+        "\\nabla \\cdot \\mathbf{S} = -\\frac{\\partial w}{\\partial t} - P_d",
+        "\\mathbf{S}_{avg} = \\frac{1}{2} \\text{Re}\\{ \\mathbf{E}_s \\times \\mathbf{H}_s^* \\}",
+        "\\mathbf{S}_{avg} = \\frac{1}{2} \\text{Re}\\{ (E_0 e^{-j\\beta z} \\mathbf{\\hat{x}}) \\times (\\frac{E_0}{\\eta} e^{j\\beta z} \\mathbf{\\hat{y}}) \\}",
+        "\\mathbf{S}_{avg} = \\frac{1}{2} \\text{Re}\\{ \\frac{|E_0|^2}{\\eta} (\\mathbf{\\hat{x}} \\times \\mathbf{\\hat{y}}) \\}",
+        "\\mathbf{S}_{avg} = \\frac{|E_0|^2}{2\\eta} \\mathbf{\\hat{z}}",
+        "f",
+        "\\lambda",
+        "c",
+        "c \\approx 3 \\times 10^8 \\text{ m/s}",
+        "f = 2.45 \\text{ GHz} = 2.45 \\times 10^9 \\text{ Hz}",
+        "c = 3 \\times 10^8 \\text{ m/s}",
+        "c = f\\lambda",
+        "\\lambda = \\frac{c}{f}",
+        "\\lambda = \\frac{3 \\times 10^8 \\text{ m/s}}{2.45 \\times 10^9 \\text{ Hz}}",
+        "\\lambda \\approx 0.1224 \\text{ m}",
+        "\\lambda/2",
+        "f = 10 \\text{ GHz} = 10 \\times 10^9 \\text{ Hz}",
+        "c = 3 \\times 10^8 \\text{ m/s}",
+        "\\lambda = \\frac{c}{f} = \\frac{3 \\times 10^8 \\text{ m/s}}{10 \\times 10^9 \\text{ Hz}} = 0.03 \\text{ m}",
+        "L = \\frac{\\lambda}{2}",
+        "L = \\frac{0.03 \\text{ m}}{2} = 0.015 \\text{ m}",
+        "\\mathbf{D}",
+        "^2",
+        "\\rho",
+        "^3",
+        "\\mathbf{B}",
+        "^2",
+        "\\mathbf{E}",
+        "\\mathbf{H}",
+        "\\mathbf{J}",
+        "^2",
+        "\\mathbf{D}",
+        "\\mathbf{E}",
+        "\\mathbf{B}",
+        "\\mathbf{H}",
+        "\\mathbf{J}",
+        "\\mathbf{E}",
+        "\\mathbf{D} = \\epsilon \\mathbf{E} = \\epsilon_0 \\epsilon_r \\mathbf{E}",
+        "\\mathbf{B} = \\mu \\mathbf{H} = \\mu_0 \\mu_r \\mathbf{H}",
+        "\\mathbf{J} = \\sigma \\mathbf{E}",
+        "\\epsilon",
+        "\\mu",
+        "\\sigma",
+        "\\epsilon_0, \\mu_0",
+        "\\epsilon_r",
+        "\\mu_r",
+        "F(x, y, z, t)",
+        "\\mathbf{F}(x, y, z)",
+        "\\omega = 2\\pi f",
+        "j = \\sqrt{-1}",
+        "\\frac{\\partial}{\\partial t}",
+        "j\\omega",
+        "\\rho",
+        "(\\sigma + j\\omega \\epsilon)",
+        "\\epsilon_c = \\epsilon' - j\\epsilon'' = \\epsilon - j\\frac{\\sigma}{\\omega}",
+        "\\sigma_c = \\sigma + j\\omega \\epsilon",
+        "\\mathbf{E}(z, t) = E_0 \\cos(\\omega t - \\beta z) \\mathbf{\\hat{x}}",
+        "E_0",
+        "\\omega",
+        "\\beta",
+        "F(z, t) = \\text{Re}\\{\\mathbf{F}(z) e^{j\\omega t}\\}",
+        "E_x(z, t) = E_0 \\cos(\\omega t - \\beta z) = \\text{Re}\\{ E_0 e^{-j\\beta z} e^{j\\omega t} \\}",
+        "\\mathbf{E}(z) = E_0 e^{-j\\beta z} \\mathbf{\\hat{x}}",
+        "\\nabla \\times \\mathbf{E} = -j\\omega \\mu_0 \\mathbf{H}",
+        "\\mathbf{E}",
+        "\\mathbf{E}",
+        "\\nabla \\times \\mathbf{E} = -j\\beta E_0 e^{-j\\beta z} \\mathbf{\\hat{y}}",
+        "\\mathbf{H}",
+        "\\nabla \\times \\mathbf{E} = -j\\omega \\mu_0 \\mathbf{H}",
+        "-j\\beta E_0 e^{-j\\beta z} \\mathbf{\\hat{y}} = -j\\omega \\mu_0 \\mathbf{H}",
+        "\\mathbf{H} = \\frac{\\beta}{\\omega \\mu_0} E_0 e^{-j\\beta z} \\mathbf{\\hat{y}}",
+        "\\beta = \\omega \\sqrt{\\mu_0 \\epsilon_0} = \\omega/c",
+        "\\eta_0 = \\sqrt{\\mu_0/\\epsilon_0} = \\omega \\mu_0 / \\beta",
+        "\\mathbf{H} = \\frac{E_0}{\\eta_0} e^{-j\\beta z} \\mathbf{\\hat{y}}",
+        "\\mathbf{E}",
+        "\\mathbf{H}",
+        "\\mathbf{E}(z) = E_0 e^{-j\\beta z} \\mathbf{\\hat{x}}",
+        "\\epsilon_r = 9",
+        "\\sigma = 0.01 \\text{ S/m}",
+        "\\epsilon_0 = 8.854 \\times 10^{-12} \\text{ F/m}",
+        "f = 100 \\text{ MHz} = 100 \\times 10^6 \\text{ Hz}",
+        "\\epsilon_r = 9",
+        "\\sigma = 0.01 \\text{ S/m}",
+        "\\epsilon_0 = 8.854 \\times 10^{-12} \\text{ F/m}",
+        "\\omega",
+        "\\omega = 2\\pi f = 2\\pi (100 \\times 10^6) = 2\\pi \\times 10^8 \\text{ rad/s}",
+        "\\epsilon'",
+        "\\epsilon' = \\epsilon_r \\epsilon_0 = 9 \\times (8.854 \\times 10^{-12} \\text{ F/m}) = 7.9686 \\times 10^{-11} \\text{ F/m}",
+        "\\epsilon''",
+        "\\epsilon'' = \\frac{\\sigma}{\\omega}",
+        "\\epsilon'' = \\frac{0.01 \\text{ S/m}}{2\\pi \\times 10^8 \\text{ rad/s}} \\approx \\frac{0.01}{6.283 \\times 10^8} \\text{ F/m} \\approx 1.5915 \\times 10^{-11} \\text{ F/m}",
+        "\\epsilon_c = \\epsilon' - j\\epsilon''",
+        "\\epsilon_c = (7.9686 - j1.5915) \\times 10^{-11} \\text{ F/m}",
+        "(7.9686 - j1.5915) \\times 10^{-11} \\text{ F/m}",
+        "E_0",
+        "H_0",
+        "\\beta",
+        "\\mathbf{\\hat{e}}",
+        "\\mathbf{\\hat{h}}",
+        "\\mathbf{\\hat{e}}",
+        "\\mathbf{\\hat{h}}",
+        "E_0",
+        "H_0",
+        "\\eta",
+        "\\eta_0 = \\sqrt{\\frac{\\mu_0}{\\epsilon_0}} \\approx 377 \\text{ } \\Omega",
+        "\\beta",
+        "v_p = \\frac{\\omega}{\\beta} = \\frac{1}{\\sqrt{\\mu\\epsilon}}",
+        "v_p = c",
+        "\\mathbf{E}",
+        "\\mathbf{H}",
+        "E_z = 0",
+        "H_z = 0",
+        "E_z = 0",
+        "H_z = 0",
+        "E_z = 0",
+        "H_z \\neq 0",
+        "E_z = 0",
+        "H_z \\neq 0",
+        "f_c",
+        "f_c",
+        "v_p > c/\\sqrt{\\epsilon_r}",
+        "v_g < c/\\sqrt{\\epsilon_r}",
+        "TE_{mn}",
+        "TE_{nm}",
+        "H_z = 0",
+        "E_z \\neq 0",
+        "H_z = 0",
+        "E_z \\neq 0",
+        "f_c",
+        "f_c",
+        "TM_{mn}",
+        "TM_{nm}",
+        "\\mathbf{E}",
+        "\\mathbf{E}",
+        "\\epsilon_r = 4",
+        "\\mu_r = 1",
+        "\\beta",
+        "\\lambda",
+        "v_p",
+        "\\epsilon_0 = 8.854 \\times 10^{-12} \\text{ F/m}",
+        "\\mu_0 = 4\\pi \\times 10^{-7} \\text{ H/m}",
+        "\\epsilon = \\epsilon_r \\epsilon_0 = 4 \\times (8.854 \\times 10^{-12} \\text{ F/m}) = 3.5416 \\times 10^{-11} \\text{ F/m}",
+        "\\mu = \\mu_r \\mu_0 = 1 \\times (4\\pi \\times 10^{-7} \\text{ H/m}) = 4\\pi \\times 10^{-7} \\text{ H/m}",
+        "\\omega",
+        "f = 5 \\text{ GHz} = 5 \\times 10^9 \\text{ Hz}",
+        "\\omega = 2\\pi f = 2\\pi (5 \\times 10^9) = 10\\pi \\times 10^9 \\text{ rad/s}",
+        "\\beta",
+        "\\beta = \\omega \\sqrt{\\mu\\epsilon} = (10\\pi \\times 10^9) \\sqrt{(4\\pi \\times 10^{-7})(3.5416 \\times 10^{-11})}",
+        "\\beta = (10\\pi \\times 10^9) \\sqrt{4.450 \\times 10^{-17}} \\approx (10\\pi \\times 10^9) (2.1095 \\times 10^{-8})",
+        "\\beta \\approx 662.7 \\text{ rad/m}",
+        "\\lambda",
+        "\\lambda = \\frac{2\\pi}{\\beta} = \\frac{2\\pi}{662.7} \\approx 0.00948 \\text{ m} = 9.48 \\text{ mm}",
+        "\\lambda = \\frac{v_p}{f}",
+        "v_p",
+        "v_p",
+        "v_p = \\frac{\\omega}{\\beta} = \\frac{10\\pi \\times 10^9}{662.7} \\approx 4.74 \\times 10^7 \\text{ m/s}",
+        "v_p = \\frac{1}{\\sqrt{\\mu\\epsilon}} = \\frac{1}{\\sqrt{(4\\pi \\times 10^{-7})(3.5416 \\times 10^{-11})}} = \\frac{1}{2.1095 \\times 10^{-8}} \\approx 4.74 \\times 10^7 \\text{ m/s}",
+        "v_p = \\frac{c}{\\sqrt{\\epsilon_r}} = \\frac{3 \\times 10^8}{\\sqrt{4}} = \\frac{3 \\times 10^8}{2} = 1.5 \\times 10^8 \\text{ m/s}",
+        "\\beta = \\omega \\sqrt{\\mu\\epsilon} = \\omega \\sqrt{\\mu_0 \\epsilon_0 \\mu_r \\epsilon_r} = \\frac{\\omega}{c} \\sqrt{\\mu_r \\epsilon_r}",
+        "\\beta = \\frac{2\\pi (5 \\times 10^9)}{3 \\times 10^8} \\sqrt{1 \\times 4} = \\frac{10\\pi \\times 10^9}{3 \\times 10^8} \\times 2 = \\frac{20\\pi}{3} \\times 10 \\approx 209.44 \\text{ rad/m}",
+        "v_p = \\frac{c}{\\sqrt{\\epsilon_r}} = \\frac{3 \\times 10^8}{\\sqrt{4}} = 1.5 \\times 10^8 \\text{ m/s}",
+        "\\lambda = \\frac{v_p}{f} = \\frac{1.5 \\times 10^8 \\text{ m/s}}{5 \\times 10^9 \\text{ Hz}} = 0.03 \\text{ m} = 30 \\text{ mm}",
+        "\\lambda = \\frac{2\\pi}{\\beta} = \\frac{2\\pi}{209.44} \\approx 0.03 \\text{ m}",
+        "\\beta \\approx 209.44 \\text{ rad/m}",
+        "\\lambda = 30 \\text{ mm}",
+        "v_p = 1.5 \\times 10^8 \\text{ m/s}",
+        "E_x(z, t) = 5 \\cos(\\omega t - \\beta z)",
+        "E_y(z, t) = 3 \\sin(\\omega t - \\beta z)",
+        "E_x = 5 e^{-j\\beta z}",
+        "E_y = 3 e^{-j(\\omega t - \\beta z - \\pi/2)} = 3 e^{j\\pi/2} e^{-j\\beta z} = j3 e^{-j\\beta z}",
+        "\\sin(\\theta) = \\cos(\\theta - \\pi/2)",
+        "\\mathbf{E}(z) = (5 \\mathbf{\\hat{x}} + j3 \\mathbf{\\hat{y}}) e^{-j\\beta z}",
+        "A_x = 5",
+        "\\phi_x = 0",
+        "A_y = 3",
+        "\\phi_y = \\pi/2",
+        "j",
+        "\\Delta\\phi = \\phi_y - \\phi_x = \\pi/2",
+        "A_x \\neq A_y",
+        "5 \\neq 3",
+        "\\Delta\\phi = \\pi/2",
+        "xy",
+        "z=0",
+        "z<0",
+        "(\\epsilon_1, \\mu_1, \\sigma_1)",
+        "z>0",
+        "(\\epsilon_2, \\mu_2, \\sigma_2)",
+        "\\mathbf{E}",
+        "\\mathbf{H}",
+        "\\mathbf{E}_i",
+        "\\mathbf{H}_i",
+        "\\mathbf{E}_r, \\mathbf{H}_r",
+        "\\mathbf{E}_t, \\mathbf{H}_t",
+        "\\Gamma",
+        "\\tau",
+        "z=0",
+        "\\eta_1 = \\sqrt{\\frac{\\mu_1}{\\epsilon_1}}",
+        "\\eta_2 = \\sqrt{\\frac{\\mu_2}{\\epsilon_2}}",
+        "\\eta",
+        "|\\Gamma|^2",
+        "1 - |\\Gamma|^2",
+        "\\theta_i",
+        "\\theta_t",
+        "v_{p1}",
+        "v_{p2}",
+        "\\eta_1 = \\eta_0 = 377 \\Omega",
+        "\\epsilon_r = 9",
+        "\\mu_r = 1",
+        "\\eta_1 = \\eta_0 = 377 \\Omega",
+        "\\eta_2 = \\sqrt{\\frac{\\mu_2}{\\epsilon_2}} = \\sqrt{\\frac{\\mu_r \\mu_0}{\\epsilon_r \\epsilon_0}} = \\sqrt{\\frac{\\mu_r}{\\epsilon_r}} \\sqrt{\\frac{\\mu_0}{\\epsilon_0}} = \\frac{1}{\\sqrt{\\epsilon_r}} \\eta_0",
+        "\\mu_r=1",
+        "\\eta_2 = \\frac{1}{\\sqrt{9}} \\times 377 \\Omega = \\frac{1}{3} \\times 377 \\Omega \\approx 125.67 \\Omega",
+        "\\Gamma",
+        "\\Gamma = \\frac{\\eta_2 - \\eta_1}{\\eta_2 + \\eta_1} = \\frac{125.67 - 377}{125.67 + 377} = \\frac{-251.33}{502.67} \\approx -0.5",
+        "\\tau",
+        "\\tau = 1 + \\Gamma = 1 + (-0.5) = 0.5",
+        "\\tau = \\frac{2\\eta_2}{\\eta_2 + \\eta_1} = \\frac{2 \\times 125.67}{125.67 + 377} = \\frac{251.34}{502.67} \\approx 0.5",
+        "\\Gamma \\approx -0.5",
+        "\\tau \\approx 0.5",
+        "E_i = 10 \\text{ V/m}",
+        "P_{inc}",
+        "P = \\frac{|E|^2}{2\\eta}",
+        "P_{inc} = \\frac{|E_i|^2}{2\\eta_1} = \\frac{(10 \\text{ V/m})^2}{2 \\times 377 \\Omega} = \\frac{100}{754} \\approx 0.1326 \\text{ W/m}^2",
+        "P_{ref}",
+        "E_r = \\Gamma E_i = (-0.5) \\times 10 \\text{ V/m} = -5 \\text{ V/m}",
+        "P_{ref} = \\frac{|E_r|^2}{2\\eta_1} = \\frac{|-5|^2}{2 \\times 377 \\Omega} = \\frac{25}{754} \\approx 0.0331 \\text{ W/m}^2",
+        "P_{ref} = |\\Gamma|^2 P_{inc} = (-0.5)^2 \\times 0.1326 = 0.25 \\times 0.1326 \\approx 0.0331 \\text{ W/m}^2",
+        "P_{trans}",
+        "E_t = \\tau E_i = (0.5) \\times 10 \\text{ V/m} = 5 \\text{ V/m}",
+        "P_{trans} = \\frac{|E_t|^2}{2\\eta_2} = \\frac{(5 \\text{ V/m})^2}{2 \\times 125.67 \\Omega} = \\frac{25}{251.34} \\approx 0.0995 \\text{ W/m}^2",
+        "P_{inc} = P_{ref} + P_{trans}",
+        "0.1326 \\text{ W/m}^2 \\approx 0.0331 \\text{ W/m}^2 + 0.0995 \\text{ W/m}^2 = 0.1326 \\text{ W/m}^2",
+        "0.1326 \\text{ W/m}^2",
+        "0.0331 \\text{ W/m}^2",
+        "0.0995 \\text{ W/m}^2",
+        "1/e",
+        "\\delta",
+        "f",
+        "\\mu",
+        "\\mu_r \\mu_0",
+        "\\sigma",
+        "R_s",
+        "\\delta",
+        "\\Omega",
+        "W",
+        "L",
+        "R = R_s \\frac{L}{W}",
+        "L",
+        "A",
+        "R_{DC} = \\frac{L}{\\sigma A}",
+        "W \\delta",
+        "W",
+        "R_{AC} = \\frac{L}{\\sigma W \\delta}",
+        "\\sigma = 5.8 \\times 10^7 \\text{ S/m}",
+        "\\mu_r = 1",
+        "\\mu_0 = 4\\pi \\times 10^{-7} \\text{ H/m}",
+        "\\sigma = 5.8 \\times 10^7 \\text{ S/m}",
+        "\\mu = \\mu_r \\mu_0 = 1 \\times 4\\pi \\times 10^{-7} \\text{ H/m} = 4\\pi \\times 10^{-7} \\text{ H/m}",
+        "f = 100 \\text{ MHz} = 10^8 \\text{ Hz}",
+        "\\delta = \\frac{1}{\\sqrt{\\pi f \\mu \\sigma}} = \\frac{1}{\\sqrt{\\pi (10^8) (4\\pi \\times 10^{-7}) (5.8 \\times 10^7)}}",
+        "\\delta = \\frac{1}{\\sqrt{\\pi^2 \\times 4 \\times 5.8 \\times 10^8 \\times 10^{-7} \\times 10^7}} = \\frac{1}{\\sqrt{23.2\\pi^2 \\times 10^8}}",
+        "\\delta = \\frac{1}{\\sqrt{23.2\\pi^2 \\times 10^8}} = \\frac{1}{\\sqrt{229.07 \\times 10^8}} = \\frac{1}{15.135 \\times 10^4} \\approx 6.607 \\times 10^{-6} \\text{ m}",
+        "\\delta \\approx 6.61 \\text{ micrometers}",
+        "f = 10 \\text{ GHz} = 10^{10} \\text{ Hz}",
+        "\\delta = \\frac{1}{\\sqrt{\\pi f \\mu \\sigma}} = \\frac{1}{\\sqrt{\\pi (10^{10}) (4\\pi \\times 10^{-7}) (5.8 \\times 10^7)}}",
+        "\\delta = \\frac{1}{\\sqrt{\\pi^2 \\times 4 \\times 5.8 \\times 10^{10} \\times 10^{-7} \\times 10^7}} = \\frac{1}{\\sqrt{23.2\\pi^2 \\times 10^{10}}}",
+        "\\delta = \\frac{1}{\\sqrt{229.07 \\times 10^{10}}} = \\frac{1}{15.135 \\times 10^5} \\approx 6.607 \\times 10^{-7} \\text{ m}",
+        "\\delta \\approx 0.661 \\text{ micrometers}",
+        "6.61 \\text{ \u00b5m}",
+        "0.661 \\text{ \u00b5m}",
+        "R_s = \\frac{1}{\\sigma \\delta}",
+        "\\sigma = 5.8 \\times 10^7 \\text{ S/m}",
+        "f = 100 \\text{ MHz}",
+        "\\delta_{100MHz} \\approx 6.607 \\times 10^{-6} \\text{ m}",
+        "R_s = \\frac{1}{(5.8 \\times 10^7 \\text{ S/m}) \\times (6.607 \\times 10^{-6} \\text{ m})} = \\frac{1}{383.206} \\approx 0.00261 \\text{ } \\Omega",
+        "R_s \\approx 2.61 \\text{ m}\\Omega",
+        "f = 10 \\text{ GHz}",
+        "\\delta_{10GHz} \\approx 0.6607 \\times 10^{-6} \\text{ m}",
+        "R_s = \\frac{1}{(5.8 \\times 10^7 \\text{ S/m}) \\times (0.6607 \\times 10^{-6} \\text{ m})} = \\frac{1}{38.3206} \\approx 0.0261 \\text{ } \\Omega",
+        "R_s \\approx 26.1 \\text{ m}\\Omega",
+        "2.61 \\text{ m}\\Omega",
+        "26.1 \\text{ m}\\Omega",
+        "\\mathbf{S}",
+        "\\mathbf{E}",
+        "\\mathbf{H}",
+        "\\text{W/m}^2",
+        "\\mathbf{S}",
+        "V",
+        "A",
+        "w = \\frac{1}{2}\\epsilon |\\mathbf{E}|^2 + \\frac{1}{2}\\mu |\\mathbf{H}|^2",
+        "\\text{J/m}^3",
+        "P_d = \\sigma |\\mathbf{E}|^2",
+        "\\text{W/m}^3",
+        "\\mathbf{E}_s",
+        "\\mathbf{H}_s",
+        "\\mathbf{S}_{avg}",
+        "\\mathbf{H}_s^*",
+        "\\mathbf{E}_s = E_0 e^{-j\\beta z} \\mathbf{\\hat{x}}",
+        "\\mathbf{H}_s = \\frac{E_0}{\\eta} e^{-j\\beta z} \\mathbf{\\hat{y}}",
+        "\\mathbf{H}_s^* = \\frac{E_0}{\\eta} e^{j\\beta z} \\mathbf{\\hat{y}}",
+        "\\mathbf{E}(z, t) = 10 \\cos(\\omega t - \\beta z) \\mathbf{\\hat{x}} \\text{ V/m}",
+        "\\mathbf{E}",
+        "\\mathbf{H}",
+        "\\mathbf{H}",
+        "\\mathbf{E}",
+        "\\eta_0",
+        "\\mathbf{H}",
+        "\\mathbf{E} \\times \\mathbf{H}",
+        "\\mathbf{E}",
+        "\\mathbf{\\hat{x}}",
+        "\\mathbf{H}",
+        "\\mathbf{\\hat{y}}",
+        "\\mathbf{\\hat{x}} \\times \\mathbf{\\hat{y}} = \\mathbf{\\hat{z}}",
+        "\\mathbf{H}",
+        "H = E/\\eta_0",
+        "\\mathbf{H}(z, t) = \\frac{10}{\\eta_0} \\cos(\\omega t - \\beta z) \\mathbf{\\hat{y}} \\text{ A/m}",
+        "\\eta_0 \\approx 377 \\Omega",
+        "\\mathbf{H}(z, t) \\approx 0.0265 \\cos(\\omega t - \\beta z) \\mathbf{\\hat{y}} \\text{ A/m}",
+        "\\mathbf{S} = \\mathbf{E} \\times \\mathbf{H}",
+        "\\mathbf{S}(z, t) = (10 \\cos(\\omega t - \\beta z) \\mathbf{\\hat{x}}) \\times (\\frac{10}{\\eta_0} \\cos(\\omega t - \\beta z) \\mathbf{\\hat{y}})",
+        "\\mathbf{S}(z, t) = \\frac{100}{\\eta_0} \\cos^2(\\omega t - \\beta z) (\\mathbf{\\hat{x}} \\times \\mathbf{\\hat{y}})",
+        "\\mathbf{S}(z, t) = \\frac{100}{\\eta_0} \\cos^2(\\omega t - \\beta z) \\mathbf{\\hat{z}} \\text{ W/m}^2",
+        "\\eta_0 \\approx 377 \\Omega",
+        "\\mathbf{S}(z, t) \\approx 0.265 \\cos^2(\\omega t - \\beta z) \\mathbf{\\hat{z}} \\text{ W/m}^2",
+        "\\mathbf{H}(z, t) = \\frac{10}{\\eta_0} \\cos(\\omega t - \\beta z) \\mathbf{\\hat{y}} \\text{ A/m}",
+        "\\mathbf{S}(z, t) = \\frac{100}{\\eta_0} \\cos^2(\\omega t - \\beta z) \\mathbf{\\hat{z}} \\text{ W/m}^2",
+        "\\mathbf{E}(z, t) = 10 \\cos(\\omega t - \\beta z) \\mathbf{\\hat{x}} \\text{ V/m}",
+        "\\mathbf{E}_s = 10 e^{-j\\beta z} \\mathbf{\\hat{x}}",
+        "\\mathbf{H}_s = \\frac{10}{\\eta_0} e^{-j\\beta z} \\mathbf{\\hat{y}}",
+        "\\mathbf{H}_s^* = \\frac{10}{\\eta_0} e^{j\\beta z} \\mathbf{\\hat{y}}",
+        "\\mathbf{S}_{avg} = \\frac{1}{2} \\text{Re}\\{ \\mathbf{E}_s \\times \\mathbf{H}_s^* \\}",
+        "\\mathbf{S}_{avg} = \\frac{1}{2} \\text{Re}\\{ (10 e^{-j\\beta z} \\mathbf{\\hat{x}}) \\times (\\frac{10}{\\eta_0} e^{j\\beta z} \\mathbf{\\hat{y}}) \\}",
+        "\\mathbf{S}_{avg} = \\frac{1}{2} \\text{Re}\\{ \\frac{100}{\\eta_0} e^{-j\\beta z} e^{j\\beta z} (\\mathbf{\\hat{x}} \\times \\mathbf{\\hat{y}}) \\}",
+        "\\mathbf{S}_{avg} = \\frac{1}{2} \\text{Re}\\{ \\frac{100}{\\eta_0} \\mathbf{\\hat{z}} \\}",
+        "\\eta_0",
+        "\\mathbf{S}_{avg} = \\frac{100}{2\\eta_0} \\mathbf{\\hat{z}}",
+        "\\eta_0 \\approx 377 \\Omega",
+        "\\mathbf{S}_{avg} = \\frac{100}{2 \\times 377} \\mathbf{\\hat{z}} = \\frac{100}{754} \\mathbf{\\hat{z}} \\approx 0.1326 \\mathbf{\\hat{z}} \\text{ W/m}^2",
+        "0.1326 \\mathbf{\\hat{z}} \\text{ W/m}^2",
+        "\\nabla \\cdot \\mathbf{D} = \\rho",
+        "\\mathbf{D}",
+        "\\rho"
+      ],
+      "terminology": [],
+      "quiz_questions": [
+        {
+          "question": "Microwave engineering primarily deals with frequencies ranging from 300 MHz to 300 GHz.",
+          "type": "true_false",
+          "correct_answer": "True",
+          "explanation": "The content explicitly states: 'Microwave engineering is a specialized field of electrical engineering concerned with the study and design of microwave circuits, components, and systems operating at frequencies generally ranging from 300 MHz to 300 GHz.'",
+          "difficulty": "easy"
+        },
+        {
+          "question": "Why are traditional lumped element models (resistors, capacitors, inductors) generally insufficient for accurately designing circuits at microwave frequencies?",
+          "type": "multiple_choice",
+          "options": [
+            "The speed of light is significantly slower at microwave frequencies.",
+            "Wavelengths become comparable to or smaller than the physical dimensions of circuit components.",
+            "Microwave signals only propagate in a vacuum.",
+            "Maxwell's equations do not apply at these frequencies."
+          ],
+          "correct_answer": "Wavelengths become comparable to or smaller than the physical dimensions of circuit components.",
+          "explanation": "The text explains: 'At microwave frequencies, wavelengths become comparable to or smaller than the physical dimensions of circuit components, leading to distributed effects becoming dominant. This means that components can no longer be accurately modeled as lumped elements (resistors, capacitors, inductors) with dimensions much smaller than a wavelength.'",
+          "difficulty": "medium"
+        },
+        {
+          "question": "Name two specific applications that operate within the S-band microwave frequency range.",
+          "type": "short_answer",
+          "correct_answer": "Wi-Fi, Bluetooth, microwave ovens, some radar (any two of these)",
+          "explanation": "The content lists for S-band (2-4 GHz): 'e.g., Wi-Fi, Bluetooth, microwave ovens, some radar'.",
+          "difficulty": "medium"
+        },
+        {
+          "question": "According to the fundamental relationship $c = f\\lambda$, what is the primary consequence of increasing frequency for microwave circuit design, and why?",
+          "type": "multiple_choice",
+          "options": [
+            "Wavelength increases, allowing for larger lumped components.",
+            "Wavelength decreases, requiring transmission line theory and electromagnetic field theory for analysis.",
+            "The speed of light changes, making traditional equations invalid.",
+            "Only digital signals can be processed effectively."
+          ],
+          "correct_answer": "Wavelength decreases, requiring transmission line theory and electromagnetic field theory for analysis.",
+          "explanation": "The text states: 'As frequency increases, wavelength decreases. At microwave frequencies, wavelengths become comparable to or smaller than the physical dimensions of circuit components, leading to distributed effects becoming dominant... Instead, transmission line theory and electromagnetic field theory become essential.'",
+          "difficulty": "hard"
+        },
+        {
+          "question": "Microwaves are positioned in the electromagnetic spectrum between conventional radio waves (VHF/UHF) and infrared light.",
+          "type": "true_false",
+          "correct_answer": "True",
+          "explanation": "The content specifies that microwaves are 'placing them between conventional radio waves and infrared light in the electromagnetic spectrum' and 'typically defined as frequencies above those used for conventional radio and television broadcasting (VHF/UHF) and below the infrared region.'",
+          "difficulty": "easy"
+        }
+      ],
+      "generated_at": "2025-11-12T13:29:19.780396"
+    }
+  ],
+  "current_subtopic": null,
+  "all_quiz_questions": [
+    {
+      "question": "Microwave engineering primarily deals with frequencies ranging from 300 MHz to 300 GHz.",
+      "type": "true_false",
+      "correct_answer": "True",
+      "explanation": "The content explicitly states: 'Microwave engineering is a specialized field of electrical engineering concerned with the study and design of microwave circuits, components, and systems operating at frequencies generally ranging from 300 MHz to 300 GHz.'",
+      "difficulty": "easy"
+    },
+    {
+      "question": "Why are traditional lumped element models (resistors, capacitors, inductors) generally insufficient for accurately designing circuits at microwave frequencies?",
+      "type": "multiple_choice",
+      "options": [
+        "The speed of light is significantly slower at microwave frequencies.",
+        "Wavelengths become comparable to or smaller than the physical dimensions of circuit components.",
+        "Microwave signals only propagate in a vacuum.",
+        "Maxwell's equations do not apply at these frequencies."
+      ],
+      "correct_answer": "Wavelengths become comparable to or smaller than the physical dimensions of circuit components.",
+      "explanation": "The text explains: 'At microwave frequencies, wavelengths become comparable to or smaller than the physical dimensions of circuit components, leading to distributed effects becoming dominant. This means that components can no longer be accurately modeled as lumped elements (resistors, capacitors, inductors) with dimensions much smaller than a wavelength.'",
+      "difficulty": "medium"
+    },
+    {
+      "question": "Name two specific applications that operate within the S-band microwave frequency range.",
+      "type": "short_answer",
+      "correct_answer": "Wi-Fi, Bluetooth, microwave ovens, some radar (any two of these)",
+      "explanation": "The content lists for S-band (2-4 GHz): 'e.g., Wi-Fi, Bluetooth, microwave ovens, some radar'.",
+      "difficulty": "medium"
+    },
+    {
+      "question": "According to the fundamental relationship $c = f\\lambda$, what is the primary consequence of increasing frequency for microwave circuit design, and why?",
+      "type": "multiple_choice",
+      "options": [
+        "Wavelength increases, allowing for larger lumped components.",
+        "Wavelength decreases, requiring transmission line theory and electromagnetic field theory for analysis.",
+        "The speed of light changes, making traditional equations invalid.",
+        "Only digital signals can be processed effectively."
+      ],
+      "correct_answer": "Wavelength decreases, requiring transmission line theory and electromagnetic field theory for analysis.",
+      "explanation": "The text states: 'As frequency increases, wavelength decreases. At microwave frequencies, wavelengths become comparable to or smaller than the physical dimensions of circuit components, leading to distributed effects becoming dominant... Instead, transmission line theory and electromagnetic field theory become essential.'",
+      "difficulty": "hard"
+    },
+    {
+      "question": "Microwaves are positioned in the electromagnetic spectrum between conventional radio waves (VHF/UHF) and infrared light.",
+      "type": "true_false",
+      "correct_answer": "True",
+      "explanation": "The content specifies that microwaves are 'placing them between conventional radio waves and infrared light in the electromagnetic spectrum' and 'typically defined as frequencies above those used for conventional radio and television broadcasting (VHF/UHF) and below the infrared region.'",
+      "difficulty": "easy"
+    }
+  ],
+  "content_history": []
+}
