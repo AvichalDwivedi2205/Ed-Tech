@@ -2,10 +2,18 @@
 Service layer for Content Creator Agent
 """
 import asyncio
+import logging
 from typing import Dict, Any, Optional
 
 from backend.agents import ContentCreatorAgent
 from backend.utils.background_tasks import task_manager, TaskStatus
+from backend.utils.convex_client import convex_service
+from backend.services.embedding_service import (
+    create_embeddings_for_content,
+    create_embeddings_for_quiz,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class ContentService:
@@ -27,6 +35,8 @@ class ContentService:
     async def generate_content_async(
         self,
         roadmap_json: Dict[str, Any],
+        workspace_id: Optional[str] = None,
+        roadmap_id: Optional[str] = None,
         subtopic_id: Optional[str] = None,
         session_id: Optional[str] = None,
         task_id: Optional[str] = None
@@ -46,6 +56,77 @@ class ContentService:
             session_id,
             task_id
         )
+        
+        # Write to Convex if workspace_id and roadmap_id are provided
+        if workspace_id and roadmap_id and result.get("content"):
+            try:
+                subtopic_id_result = result.get("subtopic_id", subtopic_id)
+                if subtopic_id_result:
+                    # Get subtopic name from roadmap
+                    subtopic_data = roadmap_json.get(subtopic_id_result, {})
+                    subtopic_name = subtopic_data.get("TopicName", subtopic_id_result)
+                    
+                    # Create or update content in Convex
+                    existing_content = await convex_service.get_content_by_roadmap_subtopic(
+                        roadmap_id=roadmap_id,
+                        subtopic_id=subtopic_id_result
+                    )
+                    
+                    if existing_content:
+                        # Update existing content
+                        await convex_service.update_content(
+                            content_id=existing_content["_id"],
+                            content=result.get("content", ""),
+                            quiz=result.get("quiz", []),
+                            graphs=result.get("graphs", []),
+                            status="completed"
+                        )
+                        result["content_id"] = existing_content["_id"]
+                    else:
+                        # Create new content
+                        content_id = await convex_service.create_content(
+                            workspace_id=workspace_id,
+                            roadmap_id=roadmap_id,
+                            subtopic_id=subtopic_id_result,
+                            subtopic_name=subtopic_name,
+                            content=result.get("content", ""),
+                            quiz=result.get("quiz", []),
+                            graphs=result.get("graphs", []),
+                            status="completed"
+                        )
+                        result["content_id"] = content_id
+                        
+                        # Generate embeddings for content and quiz (async, don't wait)
+                        try:
+                            asyncio.create_task(
+                                create_embeddings_for_content(
+                                    workspace_id=workspace_id,
+                                    content_id=content_id,
+                                    roadmap_id=roadmap_id,
+                                    content_text=result.get("content", ""),
+                                    subtopic_id=subtopic_id_result,
+                                    subtopic_name=subtopic_name,
+                                )
+                            )
+                            
+                            if result.get("quiz"):
+                                asyncio.create_task(
+                                    create_embeddings_for_quiz(
+                                        workspace_id=workspace_id,
+                                        content_id=content_id,
+                                        roadmap_id=roadmap_id,
+                                        quiz=result.get("quiz", []),
+                                        subtopic_id=subtopic_id_result,
+                                        subtopic_name=subtopic_name,
+                                    )
+                                )
+                        except Exception as e:
+                            logger.warning(f"Failed to create embeddings: {str(e)}")
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to save content to Convex: {str(e)}")
+                # Don't fail the request if Convex save fails
         
         if task_id:
             task_manager.set_result(task_id, result)

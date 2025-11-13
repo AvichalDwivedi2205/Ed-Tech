@@ -2,7 +2,7 @@
 Content Creator API routes
 """
 import uuid
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Optional
 import sys
 from pathlib import Path
@@ -20,12 +20,18 @@ from backend.models.schemas import (
 )
 from backend.services.content_service import content_service
 from backend.utils.background_tasks import task_manager, TaskStatus
+from backend.middleware.clerk_auth import verify_clerk_token
 
 router = APIRouter(prefix="/content", tags=["content"])
 
 
 @router.post("/generate", response_model=ContentResponse)
-async def generate_content(request: ContentGenerateRequest):
+async def generate_content(
+    request: ContentGenerateRequest,
+    workspace_id: str = Query(..., description="Workspace ID"),
+    roadmap_id: str = Query(..., description="Roadmap ID"),
+    user: dict = Depends(verify_clerk_token)
+):
     """Generate content for a subtopic"""
     try:
         # Create task for progress tracking
@@ -38,6 +44,8 @@ async def generate_content(request: ContentGenerateRequest):
         # Generate content asynchronously
         result = await content_service.generate_content_async(
             roadmap_json=request.roadmap_json,
+            workspace_id=workspace_id,
+            roadmap_id=roadmap_id,
             subtopic_id=request.subtopic_id,
             task_id=task_id
         )

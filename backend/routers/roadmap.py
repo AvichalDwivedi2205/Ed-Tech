@@ -2,7 +2,7 @@
 Roadmap Generator API routes
 """
 import uuid
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from typing import Optional
 import sys
 from pathlib import Path
@@ -17,6 +17,7 @@ from backend.models.schemas import (
     ErrorResponse
 )
 from backend.services.roadmap_service import roadmap_service
+from backend.middleware.clerk_auth import verify_clerk_token, get_current_user_id
 
 router = APIRouter(prefix="/roadmap", tags=["roadmap"])
 
@@ -24,12 +25,16 @@ router = APIRouter(prefix="/roadmap", tags=["roadmap"])
 @router.post("/generate", response_model=RoadmapResponse)
 async def generate_roadmap(
     user_input: str = Form(...),
+    workspace_id: str = Form(...),
     file: Optional[UploadFile] = File(None),
     session_id: Optional[str] = Form(None),
-    conversation_history: Optional[str] = Form(None)
+    conversation_history: Optional[str] = Form(None),
+    user: dict = Depends(verify_clerk_token)
 ):
     """Generate roadmap from user input with optional file upload"""
     try:
+        user_id = user.get("sub")
+        
         # Generate session ID if not provided
         if not session_id:
             session_id = str(uuid.uuid4())
@@ -61,6 +66,8 @@ async def generate_roadmap(
         # Generate roadmap
         result = await roadmap_service.generate_roadmap_async(
             user_input=user_input,
+            workspace_id=workspace_id,
+            user_id=user_id,
             file_path=file_path,
             conversation_history=history,
             session_id=session_id
@@ -93,12 +100,20 @@ async def generate_roadmap(
 
 
 @router.post("/clarify", response_model=RoadmapResponse)
-async def clarify_roadmap(request: RoadmapClarifyRequest):
+async def clarify_roadmap(
+    request: RoadmapClarifyRequest,
+    workspace_id: str = Form(...),
+    user: dict = Depends(verify_clerk_token)
+):
     """Continue clarification conversation"""
     try:
+        user_id = user.get("sub")
+        
         # Generate roadmap with user response
         result = await roadmap_service.generate_roadmap_async(
             user_input=request.user_response,
+            workspace_id=workspace_id,
+            user_id=user_id,
             conversation_history=None,  # Will be handled by agent's state
             session_id=request.session_id
         )

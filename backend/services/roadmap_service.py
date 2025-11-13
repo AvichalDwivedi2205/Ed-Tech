@@ -10,6 +10,11 @@ from pathlib import Path
 from backend.agents import RoadmapGeneratorAgent
 from langchain_core.messages import HumanMessage, AIMessage
 from backend.utils.background_tasks import task_manager, TaskStatus
+from backend.utils.convex_client import convex_service
+from backend.services.embedding_service import create_embeddings_for_roadmap
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class RoadmapService:
@@ -32,6 +37,8 @@ class RoadmapService:
     async def generate_roadmap_async(
         self,
         user_input: str,
+        workspace_id: Optional[str] = None,
+        user_id: Optional[str] = None,
         file_path: Optional[str] = None,
         ocr_text: Optional[str] = None,
         conversation_history: Optional[list] = None,
@@ -49,6 +56,81 @@ class RoadmapService:
             conversation_history,
             session_id
         )
+        
+        # Write to Convex if workspace_id and user_id are provided
+        if workspace_id and user_id and result.get("roadmap_json"):
+            try:
+                roadmap_json = result.get("roadmap_json")
+                teaching_style = roadmap_json.get("TeachingStyle", "mixed")
+                title = f"Roadmap: {user_input[:50]}"
+                
+                # Create or update roadmap in Convex
+                if session_id:
+                    # Check if roadmap already exists for this session
+                    existing_roadmap = await convex_service.get_roadmap_by_session(session_id)
+                    if existing_roadmap:
+                        # Update existing roadmap
+                        await convex_service.update_roadmap(
+                            roadmap_id=existing_roadmap["_id"],
+                            roadmap_json=roadmap_json,
+                            status="completed"
+                        )
+                        result["roadmap_id"] = existing_roadmap["_id"]
+                    else:
+                        # Create new roadmap
+                        roadmap_id = await convex_service.create_roadmap(
+                            workspace_id=workspace_id,
+                            title=title,
+                            roadmap_json=roadmap_json,
+                            teaching_style=teaching_style,
+                            created_by=user_id,
+                            status="completed",
+                            session_id=session_id
+                        )
+                        result["roadmap_id"] = roadmap_id
+                        
+                        # Generate embeddings for roadmap (async, don't wait)
+                        try:
+                            asyncio.create_task(
+                                create_embeddings_for_roadmap(
+                                    workspace_id=workspace_id,
+                                    roadmap_id=roadmap_id,
+                                    roadmap_json=roadmap_json,
+                                    roadmap_title=title,
+                                )
+                            )
+                        except Exception as e:
+                            logger.warning(f"Failed to create roadmap embeddings: {str(e)}")
+                else:
+                    # Create new roadmap without session
+                    roadmap_id = await convex_service.create_roadmap(
+                        workspace_id=workspace_id,
+                        title=title,
+                        roadmap_json=roadmap_json,
+                        teaching_style=teaching_style,
+                        created_by=user_id,
+                        status="completed"
+                    )
+                    result["roadmap_id"] = roadmap_id
+                    
+                    # Generate embeddings for roadmap (async, don't wait)
+                    try:
+                        asyncio.create_task(
+                            create_embeddings_for_roadmap(
+                                workspace_id=workspace_id,
+                                roadmap_id=roadmap_id,
+                                roadmap_json=roadmap_json,
+                                roadmap_title=title,
+                            )
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to create roadmap embeddings: {str(e)}")
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to save roadmap to Convex: {str(e)}")
+                # Don't fail the request if Convex save fails
+        
         return result
     
     def _generate_roadmap_sync(

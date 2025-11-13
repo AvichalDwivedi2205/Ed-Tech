@@ -19,4 +19,7 @@ pydantic>=2.5.0
 pydantic-settings>=2.1.0
 aiofiles>=23.2.1
 python-dotenv>=1.0.0
+httpx>=0.25.0
+convex>=0.3.0
+openai>=1.0.0
 

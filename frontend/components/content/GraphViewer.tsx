@@ -13,6 +13,7 @@ interface Graph {
   title?: string
   xlabel?: string
   ylabel?: string
+  imageBase64?: string
 }
 
 interface GraphViewerProps {
@@ -112,18 +113,28 @@ export function GraphViewer({ graphs, className }: GraphViewerProps) {
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="preview" className="mt-4">
-                  <div className="border rounded-lg p-8 bg-muted/20 flex items-center justify-center min-h-[300px]">
-                    <div className="text-center">
-                      <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-muted-foreground mb-2">
-                        Graph visualization will be rendered here
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Note: Graph code execution requires server-side rendering.
-                        The Python matplotlib code is available in the Code tab.
-                      </p>
+                  {graph.imageBase64 ? (
+                    <div className="border rounded-lg p-4 bg-muted/20">
+                      <img 
+                        src={graph.imageBase64} 
+                        alt={graph.title || `Graph ${index + 1}`}
+                        className="w-full h-auto rounded-lg"
+                      />
                     </div>
-                  </div>
+                  ) : (
+                    <div className="border rounded-lg p-8 bg-muted/20 flex items-center justify-center min-h-[300px]">
+                      <div className="text-center">
+                        <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                        <p className="text-muted-foreground mb-2">
+                          Graph visualization will be rendered here
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Note: Graph code execution requires server-side rendering.
+                          The Python matplotlib code is available in the Code tab.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </TabsContent>
                 <TabsContent value="code" className="mt-4">
                   <ScrollArea className="h-[300px] w-full rounded-lg border bg-muted/20 p-4">

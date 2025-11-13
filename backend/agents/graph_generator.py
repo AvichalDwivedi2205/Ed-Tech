@@ -8,6 +8,12 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 import re
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
+import matplotlib.pyplot as plt
+import numpy as np
+import io
+import base64
 from .content_tools import GraphGenerator
 
 
@@ -217,13 +223,17 @@ plt.tight_layout()
                     graph_type, description, title, xlabel, ylabel
                 )
             
+            # Generate base64 image from code
+            image_base64 = self._generate_graph_image(code)
+            
             generated_graphs.append({
                 "type": graph_type,
                 "code": code,
                 "description": description,
                 "title": title,
                 "xlabel": xlabel,
-                "ylabel": ylabel
+                "ylabel": ylabel,
+                "imageBase64": image_base64
             })
         
         actions.append({"type": "success", "message": f"Generated {len(generated_graphs)} graph codes"})
@@ -276,7 +286,11 @@ plt.tight_layout()
             if 'plt.tight_layout()' not in code and 'fig.tight_layout()' not in code:
                 code = code.rstrip() + '\nplt.tight_layout()'
             
+            # Generate base64 image from code
+            image_base64 = self._generate_graph_image(code)
+            
             graph["code"] = code
+            graph["imageBase64"] = image_base64
             validated_graphs.append(graph)
         
         return {
@@ -285,6 +299,69 @@ plt.tight_layout()
             "graphs_complete": True,
             "actions": actions
         }
+    
+    def _generate_graph_image(self, code: str) -> Optional[str]:
+        """
+        Execute matplotlib code and return base64 encoded PNG image.
+        
+        Args:
+            code: Python code that generates a matplotlib plot
+            
+        Returns:
+            Base64 encoded PNG image string or None if generation fails
+        """
+        try:
+            # Clear any existing figures
+            plt.clf()
+            plt.close('all')
+            
+            # Create namespace for code execution
+            namespace = {
+                'plt': plt,
+                'np': np,
+                '__builtins__': __builtins__,
+            }
+            
+            # Try to import 3D if needed
+            try:
+                from mpl_toolkits.mplot3d import Axes3D
+                namespace['Axes3D'] = Axes3D
+            except ImportError:
+                pass
+            
+            # Execute the code
+            exec(code, namespace)
+            
+            # Get the current figure
+            fig = plt.gcf()
+            
+            # Check if figure has any axes
+            if len(fig.get_axes()) == 0:
+                plt.close(fig)
+                return None
+            
+            # Save to bytes buffer
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor='white')
+            buf.seek(0)
+            
+            # Convert to base64
+            image_base64 = base64.b64encode(buf.read()).decode('utf-8')
+            
+            # Close figure to free memory
+            plt.close(fig)
+            buf.close()
+            
+            return f"data:image/png;base64,{image_base64}"
+            
+        except Exception as e:
+            # Log error but don't fail completely
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to generate graph image: {str(e)}")
+            plt.clf()
+            plt.close('all')
+            return None
     
     def generate_graphs_for_content(self, content: str) -> List[Dict]:
         """Generate graphs for content (convenience method)"""

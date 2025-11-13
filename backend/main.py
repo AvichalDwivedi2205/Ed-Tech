@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 import logging
 
 from backend.config import settings
-from backend.routers import roadmap, content
+from backend.routers import roadmap, content, qa
 from backend.models.schemas import ErrorResponse
 
 # Configure logging
@@ -36,6 +36,7 @@ app.add_middleware(
 # Include routers
 app.include_router(roadmap.router, prefix=settings.API_V1_PREFIX)
 app.include_router(content.router, prefix=settings.API_V1_PREFIX)
+app.include_router(qa.router, prefix=settings.API_V1_PREFIX)
 
 
 # Error handlers
