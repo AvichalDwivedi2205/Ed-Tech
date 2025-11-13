@@ -25,7 +25,12 @@ class SubtopicContext:
 class ContextManager:
     """Manages context across subtopics"""
     
-    def __init__(self, context_file: str = "content_context.json"):
+    def __init__(self, context_file: Optional[str] = None):
+        if context_file is None:
+            # Default to backend directory
+            import os
+            backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            context_file = os.path.join(backend_dir, "content_context.json")
         self.context_file = context_file
         self.context = self._load_context()
     

@@ -10,11 +10,11 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 import json
 import os
 from datetime import datetime
-from content_context import ContextManager, SubtopicContext
-from content_tools import LaTeXGenerator, GraphGenerator, ContentFormatter
-from quiz_generator import QuizGenerator
-from graph_generator import GraphGeneratorAgent
-from content_research import ContentResearchTool
+from .content_context import ContextManager, SubtopicContext
+from .content_tools import LaTeXGenerator, GraphGenerator, ContentFormatter
+from .quiz_generator import QuizGenerator
+from .graph_generator import GraphGeneratorAgent
+from .content_research import ContentResearchTool
 
 
 class ContentAgentState(TypedDict):
@@ -446,19 +446,38 @@ Generate the complete content now.""")
         actions.append({"type": "info", "message": "Generating quiz questions..."})
         
         # Use quiz generator sub-agent
-        quiz_result = self.quiz_generator.generate_subtopic_quiz(
-            content, subtopic_name, subtopic_id, num_questions=5
-        )
-        
-        quiz_questions = quiz_result.get("questions", [])
-        
-        return {
-            **state,
-            "generated_quiz": quiz_questions,
-            "actions": actions + [
-                {"type": "success", "message": f"Generated {len(quiz_questions)} quiz questions"}
-            ]
-        }
+        try:
+            quiz_result = self.quiz_generator.generate_subtopic_quiz(
+                content, subtopic_name, subtopic_id, num_questions=5
+            )
+            
+            quiz_questions = quiz_result.get("questions", [])
+            
+            if not quiz_questions:
+                actions.append({
+                    "type": "warning", 
+                    "message": "Quiz generation returned 0 questions. Check console for details."
+                })
+            
+            return {
+                **state,
+                "generated_quiz": quiz_questions,
+                "actions": actions + [
+                    {"type": "success", "message": f"Generated {len(quiz_questions)} quiz questions"}
+                ]
+            }
+        except Exception as e:
+            import traceback
+            print(f"Quiz generation error: {traceback.format_exc()}")
+            actions.append({
+                "type": "error",
+                "message": f"Quiz generation error: {str(e)}"
+            })
+            return {
+                **state,
+                "generated_quiz": [],
+                "actions": actions
+            }
     
     def save_context(self, state: ContentAgentState) -> ContentAgentState:
         """Save context for completed subtopic"""
@@ -504,7 +523,9 @@ Generate the complete content now.""")
     
     def _save_content_files(self, subtopic_id: str, content: str, quiz: List[Dict], graphs: List[Dict]):
         """Save generated content, quiz, and graphs to files"""
-        output_dir = "generated_content"
+        # Save to backend directory
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        output_dir = os.path.join(backend_dir, "generated_content")
         subtopic_dir = os.path.join(output_dir, subtopic_id)
         
         # Create directories
@@ -564,7 +585,8 @@ Generate the complete content now.""")
         mega_quiz = self.quiz_generator.generate_mega_quiz(all_content, num_questions=15)
         
         # Save mega quiz
-        output_dir = "generated_content"
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        output_dir = os.path.join(backend_dir, "generated_content")
         os.makedirs(output_dir, exist_ok=True)
         mega_quiz_file = os.path.join(output_dir, "mega_quiz.json")
         with open(mega_quiz_file, 'w', encoding='utf-8') as f:

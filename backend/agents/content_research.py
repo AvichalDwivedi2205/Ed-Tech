@@ -7,7 +7,7 @@ Content Research Tools for Content Creator Agent
 import os
 from typing import List, Dict, Optional
 from dotenv import load_dotenv
-from tools import PerplexitySearchTool, ScraperTool
+from .tools import PerplexitySearchTool, ScraperTool
 
 load_dotenv()
 

@@ -8,7 +8,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 import re
-from content_tools import GraphGenerator
+from .content_tools import GraphGenerator
 
 
 class GraphState(TypedDict):
@@ -184,11 +184,31 @@ plt.tight_layout()
             chain = prompt | self.llm
             response = chain.invoke({})
             
-            code = response.content.strip()
+            code = response.content.strip() if hasattr(response, 'content') else str(response)
             
-            # Clean up code (remove markdown code blocks if present)
+            # Aggressively clean up code
+            # Remove markdown code blocks
             code = re.sub(r'```python\s*', '', code)
+            code = re.sub(r'```json\s*', '', code)
             code = re.sub(r'```\s*$', '', code)
+            
+            # Remove instruction lines
+            lines = code.split('\n')
+            cleaned_lines = []
+            for line in lines:
+                line_lower = line.lower().strip()
+                # Skip instruction lines
+                if any(phrase in line_lower for phrase in ['do not include', 'do not', 'must include', 'critical', 'requirements:', 'output format', 'return only', 'code structure:']):
+                    continue
+                # Skip empty comment lines that are instructions
+                if line.strip().startswith('#') and any(phrase in line_lower for phrase in ['do not', 'must', 'critical']):
+                    continue
+                cleaned_lines.append(line)
+            code = '\n'.join(cleaned_lines)
+            
+            # Remove instruction comments
+            code = re.sub(r'#\s*(Do NOT|MUST|CRITICAL|Output|Return|Code structure).*?\n', '\n', code, flags=re.IGNORECASE)
+            
             code = code.strip()
             
             # If LLM didn't generate good code, use template
@@ -232,14 +252,27 @@ plt.tight_layout()
                 code = "import matplotlib.pyplot as plt\nimport numpy as np\n\n" + code
             
             # Remove plt.show() if present (not needed for Streamlit)
-            code = re.sub(r'plt\.show\(\)\s*', '', code)
+            code = re.sub(r'plt\.show\(\)\s*', '', code, flags=re.MULTILINE)
+            
+            # Remove instruction lines that might have been included
+            lines = code.split('\n')
+            cleaned_lines = []
+            for line in lines:
+                line_lower = line.lower().strip()
+                if any(phrase in line_lower for phrase in ['do not include', 'do not', 'must include', 'critical']):
+                    continue
+                cleaned_lines.append(line)
+            code = '\n'.join(cleaned_lines)
             
             # Add random seed if not present
             if 'np.random.seed' not in code and 'random.seed' not in code:
                 # Insert after numpy import
-                code = code.replace('import numpy as np', 'import numpy as np\nnp.random.seed(42)')
+                if 'import numpy as np' in code:
+                    code = code.replace('import numpy as np', 'import numpy as np\nnp.random.seed(42)')
+                elif 'import numpy' in code:
+                    code = code.replace('import numpy', 'import numpy as np\nnp.random.seed(42)')
             
-            # Ensure tight_layout is present
+            # Ensure tight_layout is present (but not duplicate)
             if 'plt.tight_layout()' not in code and 'fig.tight_layout()' not in code:
                 code = code.rstrip() + '\nplt.tight_layout()'
             

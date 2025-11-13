@@ -9,7 +9,7 @@ from langgraph.graph import StateGraph, END
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
-from content_context import ContextManager
+from .content_context import ContextManager
 
 
 class QuizState(TypedDict):
@@ -160,24 +160,58 @@ Generate {num_questions} unique questions that test understanding of this conten
         response = chain.invoke({})
         
         questions = []
+        response_text = response.content.strip() if hasattr(response, 'content') else str(response)
+        
+        # Try multiple parsing strategies
         try:
-            questions = json.loads(response.content.strip())
+            # Strategy 1: Direct JSON parse
+            questions = json.loads(response_text)
             if not isinstance(questions, list):
                 questions = []
         except json.JSONDecodeError:
-            # Try to extract JSON from markdown code blocks
-            json_match = re.search(r'```(?:json)?\s*(\[.*?\])\s*```', response.content, re.DOTALL)
-            if json_match:
-                try:
+            try:
+                # Strategy 2: Extract JSON from markdown code blocks
+                json_match = re.search(r'```(?:json)?\s*(\[.*?\])', response_text, re.DOTALL)
+                if json_match:
                     questions = json.loads(json_match.group(1))
-                except:
+                else:
+                    # Strategy 3: Find JSON array in text
+                    json_match = re.search(r'(\[[\s\S]*\])', response_text)
+                    if json_match:
+                        questions = json.loads(json_match.group(1))
+            except:
+                # Strategy 4: Try to fix common JSON issues
+                try:
+                    # Remove markdown formatting
+                    cleaned = re.sub(r'```(?:json|python)?\s*', '', response_text)
+                    cleaned = re.sub(r'```\s*$', '', cleaned)
+                    # Try to find and extract array
+                    array_match = re.search(r'(\[[\s\S]{50,}\])', cleaned, re.MULTILINE)
+                    if array_match:
+                        questions = json.loads(array_match.group(1))
+                except Exception as e:
+                    # Last resort: log error but continue
+                    print(f"Quiz generation JSON parse error: {str(e)}")
+                    print(f"Response text: {response_text[:500]}")
                     questions = []
+        
+        final_questions = questions if isinstance(questions, list) else []
+        
+        # Debug output
+        if len(final_questions) == 0:
+            actions = state.get("actions", [])
+            actions.append({
+                "type": "warning", 
+                "message": f"Quiz generation returned 0 questions. Response length: {len(response_text)} chars"
+            })
+            # Print for debugging
+            print(f"Quiz generation failed. Response preview: {response_text[:500]}")
         
         return {
             **state,
-            "questions": questions if isinstance(questions, list) else [],
+            "questions": final_questions,
             "actions": state.get("actions", []) + [
-                {"type": "success", "message": f"Generated {len(questions)} questions"}
+                {"type": "success", "message": f"Generated {len(final_questions)} questions"}
             ]
         }
     

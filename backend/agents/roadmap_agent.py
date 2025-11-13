@@ -12,7 +12,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 import json
 import re
-from tools import OCRTool, PerplexitySearchTool, ScraperTool
+from .tools import OCRTool, PerplexitySearchTool, ScraperTool
 
 
 class AgentState(TypedDict):
@@ -210,6 +210,10 @@ class RoadmapGeneratorAgent:
         user_messages = [msg.content for msg in messages if isinstance(msg, HumanMessage)]
         all_user_input = "\n".join(user_messages) if user_messages else user_input
         
+        # Extract original topic from conversation
+        user_context_for_extraction = "\n".join([f"User: {msg.content}" for msg in messages if isinstance(msg, HumanMessage)])
+        original_topic = self._extract_original_topic(user_context_for_extraction, user_input)
+        
         # Build context for clarification
         context = ""
         if roadmap_context:
@@ -229,14 +233,16 @@ class RoadmapGeneratorAgent:
         # Determine which question to ask based on clarification count
         question_focus = ""
         if clarification_count == 0:
-            question_focus = '''IMPORTANT: You MUST ask about the user's preferred teaching style. Ask: "What is your preferred teaching/learning style? (e.g., fast-paced/in-depth/normal)" This is critical for generating the roadmap.'''
+            question_focus = f'''IMPORTANT: The user wants to learn about: {original_topic}. You MUST ask about their preferred teaching style for learning {original_topic}. Ask: "What is your preferred teaching/learning style? (e.g., fast-paced/in-depth/normal)" This is critical for generating the roadmap.'''
         elif clarification_count == 1:
-            question_focus = '''Ask about their current skill level and background: "What is your current skill level in this topic? (beginner/intermediate/advanced) Do you have any prior experience or background?"'''
+            question_focus = f'''The user wants to learn about: {original_topic}. Ask about their current skill level and background in {original_topic}: "What is your current skill level in {original_topic}? (beginner/intermediate/advanced) Do you have any prior experience or background?"'''
         elif clarification_count == 2:
-            question_focus = '''Ask about their learning goals and time constraints: "What are your learning goals? (career change, skill improvement, project-based, certification, etc.) Do you have any time constraints or preferred learning pace?"'''
+            question_focus = f'''The user wants to learn about: {original_topic}. Ask about their learning goals and time constraints: "What are your learning goals for {original_topic}? (career change, skill improvement, project-based, certification, etc.) Do you have any time constraints or preferred learning pace?"'''
         
         prompt = ChatPromptTemplate.from_messages([
             SystemMessage(content=f"""You are a helpful roadmap generator assistant. Your goal is to understand exactly what roadmap the user needs.
+
+CRITICAL: The user wants to learn about: {original_topic}
 
 Current clarification round: {clarification_count} (you have asked {clarification_count} questions so far)
 MINIMUM REQUIREMENT: You MUST ask at least 2 questions before generating the roadmap.
@@ -249,16 +255,19 @@ Conversation so far:
 {question_focus}
 
 CRITICAL INSTRUCTIONS:
+- The user has already specified they want to learn about: {original_topic}
+- DO NOT ask "what topic do you want to learn" - they already told you: {original_topic}
 - You MUST ask at least 2 questions before generating the roadmap (minimum requirement)
 - If this is clarification round 0 or 1, you MUST ask a question. DO NOT say "READY_TO_GENERATE" yet.
 - You MUST ask about teaching/learning style preference FIRST if it hasn't been mentioned.
 - Ask ONE clear, specific question that will help you understand:
-  1. Their preferred teaching/learning style (CRITICAL - must be asked first if not already answered)
-  2. What specific topic/subject they want to learn
-  3. Their current skill level (beginner/intermediate/advanced)
-  4. Their learning goals (career change, skill improvement, project-based, etc.)
-  5. Time constraints or preferred learning pace
-  6. Specific areas of focus within the topic
+  1. Their preferred teaching/learning style for {original_topic} (CRITICAL - must be asked first if not already answered)
+  2. Their current skill level in {original_topic} (beginner/intermediate/advanced)
+  3. Their learning goals for {original_topic} (career change, skill improvement, project-based, etc.)
+  4. Time constraints or preferred learning pace
+  5. Specific areas of focus within {original_topic}
+
+IMPORTANT: All questions should be contextual to {original_topic}. Do NOT ask generic questions about programming or computer science unless {original_topic} is about programming or computer science.
 
 If the user has provided a roadmap document, ask questions to clarify:
 - What format they want the roadmap in
@@ -269,9 +278,8 @@ ONLY respond with "READY_TO_GENERATE" if:
 - You have asked AT LEAST 2 questions (clarification_count >= 2) AND
 - You have ALL the following information:
   - Teaching/learning style preference (explicitly mentioned)
-  - Specific topic/subject
-  - Current skill level
-  - Learning goals
+  - Current skill level in {original_topic}
+  - Learning goals for {original_topic}
 
 If this is clarification round 0 or 1, you MUST ask a question. Do not skip this step."""),
             MessagesPlaceholder(variable_name="messages")
@@ -376,19 +384,23 @@ If this is clarification round 0 or 1, you MUST ask a question. Do not skip this
             if isinstance(msg, HumanMessage):
                 user_context += f"\nUser: {msg.content}"
         
+        # Extract original topic from first user message
+        original_topic = self._extract_original_topic(user_context, user_input)
+        
         # Build comprehensive context
         context_parts = []
         if roadmap_context:
             context_parts.append(f"Original roadmap document:\n{roadmap_context}")
         
         context_parts.append(f"User requirements:\n{user_context}")
+        context_parts.append(f"Original learning topic: {original_topic}")
         
         # Extract teaching style from user context
         teaching_style = self._extract_teaching_style(user_context)
         
-        # STEP 1: Generate subtopic outline first
-        actions.append({"type": "generating", "message": "Creating subtopic outline..."})
-        subtopic_outline = self._generate_subtopic_outline(user_input, roadmap_context, user_context, teaching_style)
+        # STEP 1: Generate subtopic outline first - use original topic
+        actions.append({"type": "generating", "message": f"Creating subtopic outline for: {original_topic}..."})
+        subtopic_outline = self._generate_subtopic_outline(original_topic, roadmap_context, user_context, teaching_style)
         
         # STEP 2: Search for resources specific to each subtopic
         actions.append({"type": "search", "message": "Searching for subtopic-specific learning resources..."})
@@ -398,12 +410,15 @@ If this is clarification round 0 or 1, you MUST ask a question. Do not skip this
             # Extract subtopics from outline
             subtopics = self._extract_subtopics_from_outline(subtopic_outline)
             
+            # Extract original topic for search queries
+            original_topic = self._extract_original_topic(user_context, user_input)
+            
             # Search for resources for each subtopic
             for subtopic_name, subtopic_topics in subtopics.items():
                 if subtopic_topics:
                     # Create search query specific to this subtopic
                     topic_keywords = ", ".join(subtopic_topics[:3])  # Use first 3 topics as keywords
-                    search_query = f"{user_input} {subtopic_name} {topic_keywords}"
+                    search_query = f"{original_topic} {subtopic_name} {topic_keywords}"
                     
                     subtopic_videos = ""
                     subtopic_blogs = ""
@@ -443,7 +458,9 @@ If this is clarification round 0 or 1, you MUST ask a question. Do not skip this
         
         # Fallback: If no subtopics extracted, do general search
         if not subtopic_resources:
-            search_query = self._extract_search_query(user_input, roadmap_context)
+            # Use original topic for search
+            original_topic = self._extract_original_topic(user_context, user_input)
+            search_query = self._extract_search_query(original_topic, roadmap_context)
             general_videos = ""
             general_blogs = ""
             general_books = ""
@@ -474,7 +491,9 @@ If this is clarification round 0 or 1, you MUST ask a question. Do not skip this
         
         scraper_results = ""
         try:
-            scraper_query = self._extract_search_query(user_input, roadmap_context)
+            # Use original topic for scraper query
+            original_topic = self._extract_original_topic(user_context, user_input)
+            scraper_query = self._extract_search_query(original_topic, roadmap_context)
             scraper_results = self.scraper_tool.run(scraper_query)
             actions.append({"type": "success", "message": "Content scraping completed"})
         except Exception as e:
@@ -671,7 +690,42 @@ Output ONLY the JSON object, nothing else."""),
                     "messages": messages + [AIMessage(content=f"Roadmap generated. Note: JSON parsing had issues, but content is available:\n\n{roadmap_text}")]
                 }
     
-    def _generate_subtopic_outline(self, user_input: str, roadmap_context: str, user_context: str, teaching_style: str) -> str:
+    def _extract_original_topic(self, user_context: str, user_input: str) -> str:
+        """Extract the original learning topic from conversation history"""
+        if not user_context:
+            return user_input
+        
+        # Look for the first user message that mentions a topic to learn
+        lines = user_context.split('\n')
+        for line in lines:
+            if line.startswith('User:'):
+                content = line.replace('User:', '').strip()
+                # Check if this looks like an original topic request
+                # (contains words like "learn", "roadmap", "study", or mentions a specific subject)
+                if any(keyword in content.lower() for keyword in ['learn', 'roadmap', 'study', 'want', 'generate']):
+                    # Try to extract topic from common patterns
+                    patterns = [
+                        r'learn\s+(?:about\s+)?(.+?)(?:\s|$|!|\.)',
+                        r'roadmap\s+(?:on|for|about)\s+(.+?)(?:\s|$|!|\.)',
+                        r'generate\s+(?:a\s+)?roadmap\s+(?:on|for|about)\s+(.+?)(?:\s|$|!|\.)',
+                        r'study\s+(.+?)(?:\s|$|!|\.)',
+                        r'want\s+to\s+(?:learn|study|generate).*?(?:on|for|about)\s+(.+?)(?:\s|$|!|\.)',
+                    ]
+                    for pattern in patterns:
+                        match = re.search(pattern, content, re.IGNORECASE)
+                        if match:
+                            topic = match.group(1).strip()
+                            # Clean up common endings
+                            topic = re.sub(r'\s+(roadmap|course|tutorial|guide).*$', '', topic, flags=re.IGNORECASE)
+                            if topic and len(topic) > 3:
+                                return topic
+                    # If no pattern matched but contains topic keywords, return the full content
+                    if len(content) > 10:
+                        return content
+        
+        return user_input
+
+    def _generate_subtopic_outline(self, original_topic: str, roadmap_context: str, user_context: str, teaching_style: str) -> str:
         """Generate a subtopic outline first before searching for resources"""
         context_text = ""
         if roadmap_context:
@@ -683,6 +737,8 @@ Output ONLY the JSON object, nothing else."""),
             SystemMessage(content=f"""You are an expert at breaking down learning topics into logical subtopics.
 
 {context_text}
+
+CRITICAL: The user wants to learn about: {original_topic}
 
 Your task is to create a structured outline of subtopics for this learning path. Output ONLY a structured text format like this:
 
@@ -696,18 +752,19 @@ SUBTopic3: [Name of Subtopic]
 Topics: [topic1, topic2, topic3, ...]
 
 Requirements:
-1. Break the learning path into 4-6 logical subtopics
-2. Each subtopic should have a clear, descriptive name
+1. Break the learning path into 4-6 logical subtopics for: {original_topic}
+2. Each subtopic should have a clear, descriptive name related to {original_topic}
 3. List 4-6 specific topics/concepts that will be covered in each subtopic
 4. Order subtopics logically (foundations first, then building up)
-5. Make sure topics are specific to the subject matter (e.g., "Fourier Transform", "AM Modulation", not generic learning skills)
+5. Make sure topics are specific to {original_topic} (e.g., for communication systems: "Fourier Transform", "AM Modulation", "Signal Processing", "Channel Coding", not generic programming topics)
+6. CRITICAL: The roadmap MUST be about {original_topic}, not about a different subject. If the user asked for "communication systems", generate subtopics about communication systems, NOT about general programming or computer science.
 
 Output ONLY the outline, nothing else."""),
             MessagesPlaceholder(variable_name="messages")
         ])
         
-        # Use a minimal message list for outline generation
-        outline_messages = [HumanMessage(content=user_input)]
+        # Use the original topic in the message
+        outline_messages = [HumanMessage(content=f"I want to learn about: {original_topic}")]
         
         chain = prompt | self.llm
         response = chain.invoke({"messages": outline_messages})

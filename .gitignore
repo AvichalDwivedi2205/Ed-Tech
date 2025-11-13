@@ -13,10 +13,13 @@ virtualenv/
 
 # Python cache
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+*.pyc
+.pytest_cache/
 
 # Distribution / packaging
 build/
@@ -78,3 +81,46 @@ test_pdfs/
 *.temp
 *.bak
 *.backup
+
+# Project-specific generated files
+content_context.json
+generated_content/
+**/generated_content/
+backend/generated_content/
+backend/content_context.json
+
+# Next.js
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.vercel/
+frontend/node_modules/
+frontend/.env*.local
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# Test files
+test_pdfs/
+*.test
+

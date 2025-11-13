@@ -3,8 +3,7 @@ Test script to verify all tools are working correctly
 """
 import os
 from dotenv import load_dotenv
-from tools import PerplexitySearchTool, ScraperTool
-from content_research import ContentResearchTool, TavilySearchTool
+from backend.agents import PerplexitySearchTool, ScraperTool, ContentResearchTool, TavilySearchTool
 
 load_dotenv()
 
