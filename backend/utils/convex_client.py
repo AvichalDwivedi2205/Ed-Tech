@@ -1,94 +1,109 @@
 """
-Convex HTTP API client for FastAPI backend
+Convex Python SDK client for FastAPI backend
 """
 import os
-import httpx
 import logging
+import asyncio
 from typing import Optional, Dict, Any, List
-import json
+from dotenv import load_dotenv
+from convex import ConvexClient
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 CONVEX_URL = os.getenv("CONVEX_URL", "")
-CONVEX_DEPLOY_KEY = os.getenv("CONVEX_DEPLOY_KEY", "")
+# Support both CONVEX_DEPLOY_KEY and CONVEX_DEPLOY_KEY_ED_TECH
+CONVEX_DEPLOY_KEY = os.getenv("CONVEX_DEPLOY_KEY") or os.getenv("CONVEX_DEPLOY_KEY_ED_TECH", "")
 
 if not CONVEX_URL:
     logger.warning("CONVEX_URL not set. Convex operations will fail.")
 
 
 class ConvexService:
-    """Service for interacting with Convex database via HTTP API"""
+    """Service for interacting with Convex database using Python SDK"""
     
     def __init__(self):
-        self.base_url = CONVEX_URL.rstrip("/")
+        self.convex_url = CONVEX_URL.rstrip("/")
         self.deploy_key = CONVEX_DEPLOY_KEY
-        self.client = httpx.AsyncClient(timeout=30.0)
+        
+        # Initialize Convex Python SDK client
+        # Note: Convex Python SDK doesn't support deploy_key parameter directly
+        # For server-side calls, we need to use HTTP API with deploy key in headers
+        # OR use Clerk JWT tokens
+        # For now, initialize without deploy key - will need to handle auth differently
+        self.client = ConvexClient(self.convex_url)
+        
+        if self.deploy_key:
+            logger.info("Deploy key available but Convex SDK doesn't support it directly")
+            logger.info("Consider using HTTP API with deploy key or Clerk JWT tokens")
+        else:
+            logger.warning("No deploy key set. Convex mutations may fail.")
     
     async def _call_mutation(self, function_name: str, args: Dict[str, Any]) -> Any:
-        """Call a Convex mutation function"""
-        if not self.base_url:
+        """Call a Convex mutation function using Python SDK (async wrapper)"""
+        if not self.convex_url:
             raise ValueError("CONVEX_URL not configured")
         
-        url = f"{self.base_url}/api/mutation/{function_name}"
-        headers = {
-            "Content-Type": "application/json",
-        }
-        
-        # Add deploy key if available (for server-side calls)
-        if self.deploy_key:
-            headers["Authorization"] = f"Bearer {self.deploy_key}"
-        
         try:
-            response = await self.client.post(
-                url,
-                json=args,
-                headers=headers,
+            # Run synchronous SDK call in thread pool to make it async-compatible
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                None,
+                lambda: self.client.mutation(function_name, args)
             )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Convex mutation error: {e.response.text}")
-            raise
+            return result
         except Exception as e:
             logger.error(f"Error calling Convex mutation {function_name}: {str(e)}")
             raise
     
     async def _call_query(self, function_name: str, args: Dict[str, Any]) -> Any:
-        """Call a Convex query function"""
-        if not self.base_url:
+        """Call a Convex query function using Python SDK (async wrapper)"""
+        if not self.convex_url:
             raise ValueError("CONVEX_URL not configured")
         
-        url = f"{self.base_url}/api/query/{function_name}"
-        headers = {
-            "Content-Type": "application/json",
-        }
-        
-        if self.deploy_key:
-            headers["Authorization"] = f"Bearer {self.deploy_key}"
-        
         try:
-            response = await self.client.post(
-                url,
-                json=args,
-                headers=headers,
+            # Run synchronous SDK call in thread pool to make it async-compatible
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                None,
+                lambda: self.client.query(function_name, args)
             )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Convex query error: {e.response.text}")
-            raise
+            return result
         except Exception as e:
             logger.error(f"Error calling Convex query {function_name}: {str(e)}")
+            raise
+    
+    async def _call_action(self, function_name: str, args: Dict[str, Any]) -> Any:
+        """Call a Convex action function using Python SDK (async wrapper)"""
+        if not self.convex_url:
+            raise ValueError("CONVEX_URL not configured")
+        
+        try:
+            # Run synchronous SDK call in thread pool to make it async-compatible
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                None,
+                lambda: self.client.action(function_name, args)
+            )
+            return result
+        except Exception as e:
+            logger.error(f"Error calling Convex action {function_name}: {str(e)}")
             raise
     
     # Workspace operations
     async def create_workspace(self, name: str, owner_id: str, description: Optional[str] = None) -> str:
         """Create a new workspace"""
-        result = await self._call_mutation("workspaces:create", {
+        # Build args dict, only including description if it's not None
+        args = {
             "name": name,
-            "description": description,
             "ownerId": owner_id,
-        })
+        }
+        if description is not None:
+            args["description"] = description
+        
+        result = await self._call_mutation("workspaces:create", args)
         return result
     
     async def get_workspace(self, workspace_id: str) -> Dict[str, Any]:
@@ -111,17 +126,25 @@ class ConvexService:
         uploaded_file_id: Optional[str] = None,
     ) -> str:
         """Create a new roadmap"""
-        result = await self._call_mutation("roadmaps:create", {
+        # Build args dict, only including optional fields if they're not None
+        args = {
             "workspaceId": workspace_id,
             "title": title,
-            "description": description,
             "roadmapJson": roadmap_json,
             "teachingStyle": teaching_style,
             "status": status,
-            "sessionId": session_id,
-            "uploadedFileId": uploaded_file_id,
             "createdBy": created_by,
-        })
+        }
+        
+        # Only add optional fields if they have values
+        if description is not None:
+            args["description"] = description
+        if session_id is not None:
+            args["sessionId"] = session_id
+        if uploaded_file_id is not None:
+            args["uploadedFileId"] = uploaded_file_id
+        
+        result = await self._call_mutation("roadmaps:create", args)
         return result
     
     async def update_roadmap(
@@ -175,18 +198,25 @@ class ConvexService:
         error_message: Optional[str] = None,
     ) -> str:
         """Create content for a subtopic"""
-        result = await self._call_mutation("content:create", {
+        # Build args dict, only including optional fields if they're not None
+        args = {
             "workspaceId": workspace_id,
             "roadmapId": roadmap_id,
             "subtopicId": subtopic_id,
             "subtopicName": subtopic_name,
             "content": content,
-            "contentHtml": content_html,
             "quiz": quiz,
             "graphs": graphs,
             "status": status,
-            "errorMessage": error_message,
-        })
+        }
+        
+        # Only add optional fields if they have values
+        if content_html is not None:
+            args["contentHtml"] = content_html
+        if error_message is not None:
+            args["errorMessage"] = error_message
+        
+        result = await self._call_mutation("content:create", args)
         return result
     
     async def update_content(
@@ -247,14 +277,21 @@ class ConvexService:
         roadmap_id: Optional[str] = None,
     ) -> str:
         """Create a single embedding"""
-        result = await self._call_mutation("embeddings:create", {
+        # Build args dict, only including optional fields if they're not None
+        args = {
             "workspaceId": workspace_id,
-            "contentId": content_id,
-            "roadmapId": roadmap_id,
             "text": text,
             "embedding": embedding,
             "metadata": metadata,
-        })
+        }
+        
+        # Only add optional fields if they have values
+        if content_id is not None:
+            args["contentId"] = content_id
+        if roadmap_id is not None:
+            args["roadmapId"] = roadmap_id
+        
+        result = await self._call_mutation("embeddings:create", args)
         return result
     
     async def create_embeddings_batch(
@@ -274,7 +311,8 @@ class ConvexService:
         limit: int = 5,
     ) -> List[Dict[str, Any]]:
         """Search for similar embeddings"""
-        return await self._call_query("embeddings:search", {
+        # Vector search is an action, not a query
+        return await self._call_action("embeddings:search", {
             "workspaceId": workspace_id,
             "queryEmbedding": query_embedding,
             "limit": limit,
@@ -321,4 +359,3 @@ class ConvexService:
 
 # Global instance
 convex_service = ConvexService()
-

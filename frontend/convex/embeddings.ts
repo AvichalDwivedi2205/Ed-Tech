@@ -1,5 +1,6 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, action, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 // Create an embedding
 export const create = mutation({
@@ -77,24 +78,48 @@ export const createBatch = mutation({
   },
 });
 
+// Internal query to fetch embeddings by IDs (used by action)
+export const fetchEmbeddingsByIds = internalQuery({
+  args: {
+    ids: v.array(v.id("embeddings")),
+  },
+  handler: async (ctx, args) => {
+    const embeddings = [];
+    for (const id of args.ids) {
+      const doc = await ctx.db.get(id);
+      if (doc) {
+        embeddings.push(doc);
+      }
+    }
+    return embeddings;
+  },
+});
+
 // Vector search for similar content
-export const search = query({
+// Note: vectorSearch can only be used in actions, not queries
+export const search = action({
   args: {
     workspaceId: v.id("workspaces"),
     queryEmbedding: v.array(v.float64()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const results = await ctx.db
-      .query("embeddings")
-      .withIndex("by_embedding", (q) =>
-        q.eq("workspaceId", args.workspaceId)
-      )
-      .vectorSearch("embedding", args.queryEmbedding, {
-        limit: args.limit || 5,
-      });
+    const results = await ctx.vectorSearch("embeddings", "by_embedding", {
+      vector: args.queryEmbedding,
+      limit: args.limit || 5,
+      filter: (q) => q.eq("workspaceId", args.workspaceId),
+    });
     
-    return results;
+    // Load the full documents using internal query
+    const ids = results.map((r) => r._id);
+    const embeddings = await ctx.runQuery(internal.embeddings.fetchEmbeddingsByIds, { ids });
+    
+    // Map scores back to documents
+    const scoreMap = new Map(results.map((r) => [r._id, r._score]));
+    return embeddings.map((emb) => ({
+      ...emb,
+      _score: scoreMap.get(emb._id) || 0.0,
+    }));
   },
 });
 
