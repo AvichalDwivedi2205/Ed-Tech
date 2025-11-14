@@ -97,6 +97,9 @@ frontend/.vercel/
 frontend/node_modules/
 frontend/.env*.local
 
+# Convex generated files
+frontend/convex/_generated/
+
 # Logs
 *.log
 logs/
@@ -123,4 +126,3 @@ Thumbs.db
 # Test files
 test_pdfs/
 *.test
-
