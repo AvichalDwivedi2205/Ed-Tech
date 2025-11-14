@@ -87,7 +87,7 @@ export default defineSchema({
     contentId: v.optional(v.id("content")),
     roadmapId: v.optional(v.id("roadmaps")),
     text: v.string(), // Chunk of text
-    embedding: v.array(v.float64()), // Vector (1536 dims for OpenAI)
+    embedding: v.array(v.float64()), // Vector (768 dims for Google text-embedding-004)
     metadata: v.object({
       type: v.union(
         v.literal("roadmap"),
@@ -104,7 +104,7 @@ export default defineSchema({
     .index("by_workspace", ["workspaceId"])
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
-      dimensions: 1536,
+      dimensions: 768, // Google text-embedding-004 uses 768 dimensions
       filterFields: ["workspaceId"],
     }),
 

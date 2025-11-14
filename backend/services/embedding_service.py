@@ -4,18 +4,18 @@ Embedding service for generating vector embeddings for RAG
 import os
 import logging
 from typing import List, Dict, Any, Optional
-from openai import OpenAI
+import google.generativeai as genai
 import asyncio
 
 from backend.utils.convex_client import convex_service
 
 logger = logging.getLogger(__name__)
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    logger.warning("OPENAI_API_KEY not set. Embedding generation will fail.")
-
-client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+if not GOOGLE_API_KEY:
+    logger.warning("GOOGLE_API_KEY not set. Embedding generation will fail.")
+else:
+    genai.configure(api_key=GOOGLE_API_KEY)
 
 
 def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]:
@@ -56,25 +56,28 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]
     return chunks
 
 
-async def generate_embedding(text: str) -> List[float]:
+async def generate_embedding(text: str, task_type: str = "retrieval_document") -> List[float]:
     """
-    Generate embedding for text using OpenAI.
+    Generate embedding for text using Google's text-embedding-004 model.
     
     Args:
         text: Text to embed
+        task_type: Type of task - "retrieval_document" for content, "retrieval_query" for queries
         
     Returns:
-        List of floats representing the embedding vector
+        List of floats representing the embedding vector (768 dimensions)
     """
-    if not client:
-        raise ValueError("OpenAI client not initialized. Check OPENAI_API_KEY.")
+    if not GOOGLE_API_KEY:
+        raise ValueError("Google API key not initialized. Check GOOGLE_API_KEY.")
     
     try:
-        response = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=text
+        # Use Google's embedding model
+        result = genai.embed_content(
+            model="models/text-embedding-004",
+            content=text,
+            task_type=task_type
         )
-        return response.data[0].embedding
+        return result['embedding']
     except Exception as e:
         logger.error(f"Error generating embedding: {str(e)}")
         raise

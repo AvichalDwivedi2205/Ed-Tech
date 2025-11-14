@@ -16,9 +16,8 @@ This application uses:
 2. Node.js 18+
 3. Clerk account (https://clerk.com)
 4. Convex account (https://convex.dev)
-5. OpenAI API key (for embeddings)
-6. Google API key (for Gemini)
-7. Perplexity API key (for web search)
+5. Google API key (for Gemini and embeddings)
+6. Perplexity API key (for web search)
 
 ## Setup Instructions
 
@@ -34,10 +33,9 @@ pip install -r requirements.txt
 Create `.env` file in project root:
 ```bash
 # AI APIs
-GOOGLE_API_KEY=your_google_api_key
+GOOGLE_API_KEY=your_google_api_key  # For Gemini and embeddings (text-embedding-004)
 PERPLEXITY_API_KEY=your_perplexity_api_key
 TAVILY_API_KEY=your_tavily_api_key  # Optional
-OPENAI_API_KEY=your_openai_api_key  # For embeddings
 
 # Clerk
 CLERK_PUBLISHABLE_KEY=pk_test_...
@@ -163,5 +161,5 @@ All endpoints require Clerk JWT token in Authorization header.
 - **Convex errors**: Make sure `npx convex dev` is running
 - **Clerk auth errors**: Check API keys in `.env.local`
 - **Graph not displaying**: Check that matplotlib is generating base64 images
-- **Embeddings not working**: Verify OpenAI API key is set
+- **Embeddings not working**: Verify Google API key is set (used for both Gemini and embeddings)
 

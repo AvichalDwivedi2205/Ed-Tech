@@ -42,8 +42,8 @@ async def ask_question(
     try:
         user_id = user.get("sub")
         
-        # Generate embedding for the question
-        question_embedding = await generate_embedding(request.question)
+        # Generate embedding for the question (use retrieval_query for search queries)
+        question_embedding = await generate_embedding(request.question, task_type="retrieval_query")
         
         # Search for similar content in Convex
         search_results = await convex_service.search_embeddings(
