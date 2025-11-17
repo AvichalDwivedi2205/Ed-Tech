@@ -1,16 +1,15 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useUser, UserButton } from '@clerk/nextjs';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  FolderKanban, 
-  BookOpen, 
+import {
+  LayoutDashboard,
+  FolderKanban,
+  BookOpen,
   MessageSquare,
   Plus,
-  LogOut,
-  UserButton
+  LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';

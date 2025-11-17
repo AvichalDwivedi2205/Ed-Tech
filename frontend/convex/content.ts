@@ -141,14 +141,36 @@ export const update = mutation({
     errorMessage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const updates: any = { updatedAt: Date.now() };
+    type UpdatesType = {
+      updatedAt: number;
+      content?: string;
+      contentHtml?: string;
+      quiz?: Array<{
+        question: string;
+        options: string[];
+        correctAnswer: string | number;
+        explanation?: string;
+      }>;
+      graphs?: Array<{
+        type: string;
+        title: string;
+        description: string;
+        code: string;
+        imageBase64?: string;
+        imageUrl?: string;
+      }>;
+      status?: "pending" | "generating" | "completed" | "error";
+      errorMessage?: string;
+    };
+
+    const updates: UpdatesType = { updatedAt: Date.now() };
     if (args.content !== undefined) updates.content = args.content;
     if (args.contentHtml !== undefined) updates.contentHtml = args.contentHtml;
     if (args.quiz !== undefined) updates.quiz = args.quiz;
     if (args.graphs !== undefined) updates.graphs = args.graphs;
     if (args.status !== undefined) updates.status = args.status;
     if (args.errorMessage !== undefined) updates.errorMessage = args.errorMessage;
-    
+
     await ctx.db.patch(args.contentId, updates);
     return await ctx.db.get(args.contentId);
   },

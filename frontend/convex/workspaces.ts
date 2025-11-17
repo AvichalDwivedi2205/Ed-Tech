@@ -69,10 +69,14 @@ export const update = mutation({
     description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const updates: any = { updatedAt: Date.now() };
+    const updates: {
+      updatedAt: number;
+      name?: string;
+      description?: string;
+    } = { updatedAt: Date.now() };
     if (args.name !== undefined) updates.name = args.name;
     if (args.description !== undefined) updates.description = args.description;
-    
+
     await ctx.db.patch(args.workspaceId, updates);
     return await ctx.db.get(args.workspaceId);
   },

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { Id } from '@/convex/_generated/dataModel';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,8 @@ import Link from 'next/link';
 
 export default function ChatPage({ params }: { params: { workspaceId: string } }) {
   const workspaceId = params.workspaceId as Id<'workspaces'>;
-  const { user, getToken } = useUser();
+  const { user } = useUser();
+  const { getToken } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<Array<{
     role: 'user' | 'assistant';

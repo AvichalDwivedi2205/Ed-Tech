@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { Id } from '@/convex/_generated/dataModel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,8 @@ interface RoadmapGeneratorProps {
 }
 
 export function RoadmapGenerator({ workspaceId, onComplete }: RoadmapGeneratorProps) {
-  const { user, getToken } = useUser();
+  const { user } = useUser();
+  const { getToken } = useAuth();
   const { toast } = useToast();
   const [userInput, setUserInput] = useState('');
   const [file, setFile] = useState<File | null>(null);

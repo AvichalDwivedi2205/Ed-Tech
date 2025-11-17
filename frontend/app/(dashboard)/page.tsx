@@ -72,7 +72,7 @@ export default function DashboardPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {workspaces.map((workspace) => (
+          {workspaces.map((workspace: any) => (
             <Link key={workspace._id} href={`/workspace/${workspace._id}`}>
               <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                 <CardHeader>

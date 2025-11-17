@@ -81,7 +81,7 @@ export default function RoadmapPage({
               {subtopics.map((subtopicKey) => {
                 const subtopic = roadmapJson[subtopicKey];
                 const subtopicId = subtopicKey;
-                const content = contentList?.find(c => c.subtopicId === subtopicId);
+                const content = contentList?.find((c: any) => c.subtopicId === subtopicId);
                 
                 return (
                   <Card key={subtopicKey} className="border-l-4 border-l-blue-500">

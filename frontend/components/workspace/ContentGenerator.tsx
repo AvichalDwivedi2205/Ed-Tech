@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { Id } from '@/convex/_generated/dataModel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,8 @@ interface ContentGeneratorProps {
 }
 
 export function ContentGenerator({ workspaceId, roadmapId, roadmapJson }: ContentGeneratorProps) {
-  const { user, getToken } = useUser();
+  const { user } = useUser();
+  const { getToken } = useAuth();
   const { toast } = useToast();
   const [selectedSubtopic, setSelectedSubtopic] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);

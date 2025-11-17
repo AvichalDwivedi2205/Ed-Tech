@@ -5,7 +5,7 @@ import { CheckCircle2, XCircle, AlertCircle, Info, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Action {
-  type: 'success' | 'error' | 'warning' | 'info' | 'ocr' | 'search' | 'scraping' | 'generating' | 'thinking' | 'clarification'
+  type: 'success' | 'error' | 'warning' | 'info' | 'ocr' | 'search' | 'scraping' | 'generating' | 'thinking' | 'clarification' | 'processing'
   message: string
 }
 
