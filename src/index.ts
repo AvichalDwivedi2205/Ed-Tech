@@ -1,0 +1,150 @@
+import inquirer from "inquirer";
+import { RoadmapGeneratorAgent } from "./agents/roadmap_agent";
+import { ContentCreatorAgent } from "./agents/content_agent";
+import { HumanMessage } from "@langchain/core/messages";
+import fs from "fs-extra";
+import path from "path";
+
+async function main() {
+    console.log("Welcome to the Roadmap Generator & Content Creator CLI!");
+
+    const { mode } = await inquirer.prompt([
+        {
+            type: "list",
+            name: "mode",
+            message: "What would you like to do?",
+            choices: ["Generate Roadmap", "Create Content from Roadmap"],
+        },
+    ]);
+
+    if (mode === "Generate Roadmap") {
+        await runRoadmapGenerator();
+    } else {
+        await runContentCreator();
+    }
+}
+
+async function runRoadmapGenerator() {
+    const agent = new RoadmapGeneratorAgent();
+
+    const { inputType } = await inquirer.prompt([
+        {
+            type: "list",
+            name: "inputType",
+            message: "How would you like to provide input?",
+            choices: ["Text Topic", "Upload File (PDF/Image)"],
+        },
+    ]);
+
+    let initialInputs: any = { messages: [] };
+
+    if (inputType === "Text Topic") {
+        const { topic } = await inquirer.prompt([
+            {
+                type: "input",
+                name: "topic",
+                message: "Enter the topic you want to learn:",
+            },
+        ]);
+        initialInputs.user_input = topic;
+        initialInputs.messages.push(new HumanMessage(topic));
+    } else {
+        const { filePath } = await inquirer.prompt([
+            {
+                type: "input",
+                name: "filePath",
+                message: "Enter the absolute path to the file:",
+            },
+        ]);
+        initialInputs.file_path = filePath;
+    }
+
+    console.log("\nStarting Roadmap Agent...\n");
+
+    let currentState = initialInputs;
+
+    // Run the graph
+    // We need to handle the loop manually to support user input during clarification
+
+    while (true) {
+        const result = await agent.graph.invoke(currentState);
+
+        // Update state
+        currentState = result;
+
+        // Check if we are waiting for response
+        if (result.waiting_for_response) {
+            // Print the last message from AI
+            const lastMsg = result.messages[result.messages.length - 1];
+            console.log(`\nAI: ${lastMsg.content}\n`);
+
+            // Get user input
+            const { response } = await inquirer.prompt([
+                {
+                    type: "input",
+                    name: "response",
+                    message: "Your answer:",
+                }
+            ]);
+
+            // Add user response to messages
+            currentState.messages.push(new HumanMessage(response));
+            currentState.user_input = response; // Update user input context
+            currentState.waiting_for_response = false; // Clear flag
+
+            // Continue loop
+            continue;
+        }
+
+        // Check if finished
+        if (result.final_roadmap) {
+            console.log("\n=== FINAL ROADMAP ===\n");
+            console.log(result.final_roadmap);
+
+            // Save to file
+            const outputPath = path.join(process.cwd(), "roadmap.json");
+            await fs.writeFile(outputPath, result.final_roadmap);
+            console.log(`\nRoadmap saved to ${outputPath}`);
+            break;
+        }
+
+        // If we are here, it means the graph ended without final roadmap (maybe error or unexpected state)
+        // But our graph structure should either loop or end with roadmap.
+        // One case is if we hit END from clarification without generating (shouldn't happen with current logic).
+        break;
+    }
+}
+
+async function runContentCreator() {
+    const agent = new ContentCreatorAgent();
+
+    const { roadmapPath } = await inquirer.prompt([
+        {
+            type: "input",
+            name: "roadmapPath",
+            message: "Enter path to roadmap.json:",
+            default: "./roadmap.json"
+        }
+    ]);
+
+    if (!fs.existsSync(roadmapPath)) {
+        console.error("Roadmap file not found!");
+        return;
+    }
+
+    const roadmapJson = await fs.readJson(roadmapPath);
+
+    console.log("\nStarting Content Creator Agent...\n");
+
+    const result = await agent.graph.invoke({
+        roadmap_json: roadmapJson
+    });
+
+    if (result.content_complete) {
+        console.log("\nContent generation completed!");
+    } else {
+        console.log("\nContent generation finished (check logs).");
+    }
+}
+
+main().catch(console.error);
