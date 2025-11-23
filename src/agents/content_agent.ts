@@ -16,6 +16,10 @@ export const ContentAgentState = Annotation.Root({
         reducer: (x, y) => y,
         default: () => ({}),
     }),
+    pending_subtopics: Annotation<string[]>({
+        reducer: (x, y) => y,
+        default: () => [],
+    }),
     current_subtopic_id: Annotation<string>({
         reducer: (x, y) => y,
         default: () => "",
@@ -48,17 +52,19 @@ export class ContentCreatorAgent {
     private _buildGraph() {
         const workflow = new StateGraph(ContentAgentState)
             .addNode("load_roadmap", this.loadRoadmap.bind(this))
+            .addNode("get_next_subtopic", this.getNextSubtopic.bind(this))
             .addNode("research_content", this.researchContent.bind(this))
             .addNode("generate_content", this.generateContent.bind(this))
             .addNode("save_content", this.saveContent.bind(this))
             .addEdge("__start__", "load_roadmap")
-            .addConditionalEdges("load_roadmap", this.checkCompletion.bind(this), {
-                continue: "research_content",
+            .addEdge("load_roadmap", "get_next_subtopic")
+            .addConditionalEdges("get_next_subtopic", this.checkSubtopicAvailability.bind(this), {
+                process: "research_content",
                 end: END,
             })
             .addEdge("research_content", "generate_content")
             .addEdge("generate_content", "save_content")
-            .addEdge("save_content", END);
+            .addEdge("save_content", "get_next_subtopic");
 
         return workflow.compile();
     }
@@ -66,34 +72,48 @@ export class ContentCreatorAgent {
     private async loadRoadmap(state: typeof ContentAgentState.State) {
         const roadmapJson = state.roadmap_json;
 
-        // Find first incomplete subtopic (simplified logic: just pick one for demo or iterate)
-        // In a real app, we'd track completion status in a file or DB.
-        // Here, we'll assume the user wants to generate content for a specific subtopic or we iterate.
-        // For simplicity in this migration, let's just pick the first subtopic that matches "SubtopicX"
+        // Identify all subtopics. 
+        // We assume any key that is an object and has "TopicName" is a subtopic.
+        // Or we can just filter out known metadata keys like "TeachingStyle".
+        const keys = Object.keys(roadmapJson);
+        const pendingSubtopics = keys.filter(key => {
+            const val = roadmapJson[key];
+            return typeof val === 'object' && val !== null && val.TopicName;
+        });
 
-        const subtopicKeys = Object.keys(roadmapJson).filter(k => k.startsWith("Subtopic"));
-        // Sort them
-        subtopicKeys.sort();
-
-        // Just pick the first one for now to demonstrate the flow
-        // In a full implementation, we'd check which ones are already done.
-        const currentSubtopicId = subtopicKeys[0];
-
-        if (!currentSubtopicId) {
-            return { content_complete: true };
-        }
+        console.log(`Found ${pendingSubtopics.length} subtopics to process.`);
 
         return {
-            current_subtopic_id: currentSubtopicId,
-            current_subtopic_data: roadmapJson[currentSubtopicId]
+            pending_subtopics: pendingSubtopics
         };
     }
 
-    private checkCompletion(state: typeof ContentAgentState.State) {
-        if (state.content_complete || !state.current_subtopic_id) {
+    private async getNextSubtopic(state: typeof ContentAgentState.State) {
+        const pending = state.pending_subtopics;
+
+        if (pending.length === 0) {
+            return {
+                current_subtopic_id: "",
+                current_subtopic_data: {}
+            };
+        }
+
+        const nextId = pending[0];
+        const remaining = pending.slice(1);
+        const subtopicData = state.roadmap_json[nextId];
+
+        return {
+            current_subtopic_id: nextId,
+            current_subtopic_data: subtopicData,
+            pending_subtopics: remaining
+        };
+    }
+
+    private checkSubtopicAvailability(state: typeof ContentAgentState.State) {
+        if (!state.current_subtopic_id) {
             return "end";
         }
-        return "continue";
+        return "process";
     }
 
     private async researchContent(state: typeof ContentAgentState.State) {
@@ -125,16 +145,31 @@ export class ContentCreatorAgent {
         console.log(`Generating content for: ${topicName}`);
 
         const prompt = ChatPromptTemplate.fromMessages([
-            new SystemMessage(`You are an expert educational content creator. Generate comprehensive content for the following subtopic.
-        Include:
-        - Detailed explanations
-        - Examples
-        - Code snippets (if applicable)
-        - Summary
+            new SystemMessage(`You are an expert academic content creator. Generate high-quality, structured study notes in LaTeX format.
         
-        Use Markdown format.
+        Structure the content as follows:
+        \\section{Title}
+        \\subsection{Introduction}
+        Provide a clear and concise introduction to the topic.
+        
+        \\subsection{Key Concepts}
+        Define key terms and concepts. Use \\textbf{} for terms and \\emph{} for emphasis. Use mathematical notation (e.g., $E=mc^2$) where appropriate.
+        
+        \\subsection{Detailed Explanations}
+        Explain the concepts in depth. Use itemized lists (\\begin{itemize} ... \\end{itemize}) or enumerated lists (\\begin{enumerate} ... \\end{enumerate}) for clarity.
+        
+        \\subsection{Examples}
+        Provide concrete examples to illustrate the concepts.
+        
+        \\subsection{Summary}
+        Summarize the main points.
+        
+        IMPORTANT RULES:
+        1. Output ONLY valid LaTeX code. Do not wrap it in markdown code blocks (like \`\`\`latex ... \`\`\`).
+        2. Do NOT include any preamble (like \\documentclass, \\begin{document}). Start directly with \\section.
+        3. Ensure all mathematical formulas are properly formatted.
         `),
-            new HumanMessage(`Generate content for: ${topicName}\n\nContext:\n${JSON.stringify(subtopicData)}`),
+            new HumanMessage(`Generate study notes for: ${topicName}\n\nContext:\n${JSON.stringify(subtopicData)}`),
             new MessagesPlaceholder("messages")
         ]);
 
@@ -150,14 +185,16 @@ export class ContentCreatorAgent {
         const content = state.generated_content;
         const subtopicId = state.current_subtopic_id;
 
-        const outputDir = path.join(process.cwd(), "generated_content", subtopicId);
+        // Sanitize subtopicId for folder name
+        const safeFolderName = subtopicId.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const outputDir = path.join(process.cwd(), "generated_content", safeFolderName);
         await fs.ensureDir(outputDir);
 
-        await fs.writeFile(path.join(outputDir, "content.md"), content);
-        console.log(`Content saved to ${outputDir}/content.md`);
+        await fs.writeFile(path.join(outputDir, "content.tex"), content);
+        console.log(`Content saved to ${outputDir}/content.tex`);
 
         return {
-            content_complete: true // Mark as done for this run
+            // We don't set content_complete here anymore, the loop handles it
         };
     }
 }
