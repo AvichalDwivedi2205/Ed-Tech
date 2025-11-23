@@ -1,6 +1,7 @@
 import inquirer from "inquirer";
 import { RoadmapGeneratorAgent } from "./agents/roadmap_agent";
 import { ContentCreatorAgent } from "./agents/content_agent";
+import { QuizGeneratorAgent } from "./agents/quiz_agent";
 import { HumanMessage } from "@langchain/core/messages";
 import fs from "fs-extra";
 import path from "path";
@@ -13,14 +14,16 @@ async function main() {
             type: "list",
             name: "mode",
             message: "What would you like to do?",
-            choices: ["Generate Roadmap", "Create Content from Roadmap"],
+            choices: ["Generate Roadmap", "Create Content from Roadmap", "Generate Quiz"],
         },
     ]);
 
     if (mode === "Generate Roadmap") {
         await runRoadmapGenerator();
-    } else {
+    } else if (mode === "Create Content from Roadmap") {
         await runContentCreator();
+    } else {
+        await runQuizGenerator();
     }
 }
 
@@ -168,6 +171,57 @@ async function runContentCreator() {
             break;
         }
     }
+}
+
+async function runQuizGenerator() {
+    const agent = new QuizGeneratorAgent();
+    const generatedDir = path.join(process.cwd(), "generated_content");
+
+    if (!fs.existsSync(generatedDir)) {
+        console.error("No generated content found. Please run Content Creator first.");
+        return;
+    }
+
+    const subdirs = await fs.readdir(generatedDir);
+    const availableTopics = [];
+
+    for (const subdir of subdirs) {
+        const contentPath = path.join(generatedDir, subdir, "content.json");
+        if (fs.existsSync(contentPath)) {
+            availableTopics.push(subdir);
+        }
+    }
+
+    if (availableTopics.length === 0) {
+        console.error("No valid content found in generated_content directory.");
+        return;
+    }
+
+    const { selectedTopics } = await inquirer.prompt([
+        {
+            type: "checkbox",
+            name: "selectedTopics",
+            message: "Select topics to generate quizzes for:",
+            choices: availableTopics,
+            validate: (answer) => {
+                if (answer.length < 1) {
+                    return "You must choose at least one topic.";
+                }
+                return true;
+            },
+        },
+    ]);
+
+    console.log("\nStarting Quiz Generator Agent...\n");
+
+    for (const topicId of selectedTopics) {
+        console.log(`\n--- Processing: ${topicId} ---\n`);
+        await agent.graph.invoke({
+            subtopic_id: topicId
+        });
+    }
+
+    console.log("\nAll quizzes generated successfully!");
 }
 
 main().catch(console.error);
