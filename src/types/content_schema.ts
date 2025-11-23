@@ -80,6 +80,24 @@ export interface ResourcesBlock extends BaseBlock {
     items: ResourceItem[];
 }
 
+export interface TableCell {
+    content: InlineSpan[];
+}
+
+export interface TableRow {
+    cells: TableCell[];
+}
+
+export interface TableBlock extends BaseBlock {
+    type: "table";
+    header?: TableRow[];
+    rows: TableRow[];
+}
+
+export interface DividerBlock extends BaseBlock {
+    type: "divider";
+}
+
 export type Block =
     | HeadingBlock
     | ParagraphBlock
@@ -88,6 +106,8 @@ export type Block =
     | EquationBlock
     | CodeBlock
     | ImageBlock
+    | TableBlock
+    | DividerBlock
     | ResourcesBlock;
 
 export interface Doc {

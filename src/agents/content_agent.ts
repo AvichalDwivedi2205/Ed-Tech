@@ -236,19 +236,46 @@ export class ContentCreatorAgent {
             Context: ${section.description}
             
             Output a JSON array of BLOCKS representing the content.
-            The schema for blocks is:
+            
+            ### SCHEMA DEFINITION
             
             type Block = 
-              | { type: "heading", level: 1|2|3, content: Span[] }
-              | { type: "paragraph", content: Span[] }
-              | { type: "list", style: "ordered"|"bullet", items: { content: Span[], children?: ListItem[] }[] }
-              | { type: "callout", variant: "example"|"note"|"warning", title?: Span[], content: Span[] }
-              | { type: "equation", math: "latex_string", display: "block" }
-              | { type: "code", language: "python", code: "code_string" }
+              | HeadingBlock | ParagraphBlock | ListBlock | CalloutBlock | EquationBlock | CodeBlock | ImageBlock | TableBlock | DividerBlock
+            
+            interface BaseBlock { id: string; type: string; }
+            
+            interface HeadingBlock extends BaseBlock { type: "heading"; level: 1|2|3|4; content: InlineSpan[]; }
+            interface ParagraphBlock extends BaseBlock { type: "paragraph"; content: InlineSpan[]; }
+            
+            interface ListBlock extends BaseBlock { type: "list"; style: "ordered"|"bullet"; items: ListItem[]; }
+            interface ListItem { content: InlineSpan[]; children?: ListItem[]; }
+            
+            interface CalloutBlock extends BaseBlock { 
+                type: "callout"; 
+                variant: "example"|"note"|"warning"|"info"; 
+                title?: InlineSpan[]; 
+                icon?: string; 
+                content: InlineSpan[]; 
+            }
+            
+            interface EquationBlock extends BaseBlock { type: "equation"; math: string; display?: "block"|"inline"; }
+            interface CodeBlock extends BaseBlock { type: "code"; language?: string; code: string; }
+            
+            interface InlineSpan {
+                text: string;
+                bold?: boolean;
+                italic?: boolean;
+                underline?: boolean;
+                strike?: boolean;
+                code?: boolean;
+                subscript?: boolean;
+                superscript?: boolean;
+                color?: string;
+                link?: { url: string; title?: string; };
+                mathInline?: string;
+            }
 
-            type Span = { text: string, bold?: boolean, italic?: boolean, code?: boolean, mathInline?: "latex_string" }
-
-            IMPORTANT RULES:
+            ### IMPORTANT RULES
             1. Content must be EXTENSIVE (2000+ words equivalent).
             2. Use "equation" blocks for main formulas. Use "mathInline" span for inline math.
             3. STRICTLY ESCAPE LATEX BACKSLASHES in JSON strings. 
@@ -256,6 +283,31 @@ export class ContentCreatorAgent {
                Example: "\\frac{a}{b}" must be written as "\\\\frac{a}{b}".
             4. Do not use markdown for bold/italic. Use the Span object properties.
             5. Output ONLY valid JSON array.
+            
+            ### EXAMPLE OUTPUT
+            [
+                {
+                    "id": "b1",
+                    "type": "heading",
+                    "level": 2,
+                    "content": [{ "text": "The Inherent Challenge" }]
+                },
+                {
+                    "id": "b2",
+                    "type": "paragraph",
+                    "content": [
+                        { "text": "Antenna Size Requirements: ", "bold": true },
+                        { "text": "for efficient radiation, antenna length must be a fraction of the wavelength ", "italic": true },
+                        { "text": "λ = c / f", "mathInline": "\\\\lambda = \\\\frac{c}{f}" }
+                    ]
+                },
+                {
+                    "id": "b3",
+                    "type": "equation",
+                    "math": "\\\\lambda = \\\\frac{c}{f}",
+                    "display": "block"
+                }
+            ]
             `),
             new MessagesPlaceholder("messages")
         ]);
@@ -267,9 +319,6 @@ export class ContentCreatorAgent {
         try {
             const content = (response as any).content;
             sectionBlocks = repairJsonWithLatex(content);
-
-            // Wrap in a section heading if not present (optional, but good for structure)
-            // Actually, let's just trust the blocks.
         } catch (e) {
             console.error(`Failed to parse section JSON for ${section.title}`, e);
             // Fallback to a simple paragraph block
