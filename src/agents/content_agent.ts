@@ -59,6 +59,7 @@ export const ContentAgentState = Annotation.Root({
 
 export class ContentCreatorAgent {
     private llm: any;
+    private llmStructured: any; // Lower temperature for JSON generation
     private searchTool: TavilySearchTool;
     private academicTool: AcademicRetrievalTool;
     private perplexityTool: PerplexitySearchTool;
@@ -66,6 +67,7 @@ export class ContentCreatorAgent {
 
     constructor() {
         this.llm = getModel(0.7);
+        this.llmStructured = getModel(0.2); // Lower temperature for structured JSON output
         this.searchTool = new TavilySearchTool();
         this.academicTool = new AcademicRetrievalTool();
         this.perplexityTool = new PerplexitySearchTool();
@@ -194,19 +196,19 @@ export class ContentCreatorAgent {
             ]
             
             Create at least 6-8 substantial sections to ensure depth.
-            Output ONLY the JSON array.`),
+            Output ONLY the JSON array. NO comments, NO explanations, NO markdown code blocks. Pure JSON only.`),
             new MessagesPlaceholder("messages")
         ]);
 
-        const chain = prompt.pipe(this.llm);
+        // Use lower temperature model for structured JSON output
+        const chain = prompt.pipe(this.llmStructured);
         const response = await chain.invoke({ messages: state.messages });
 
         let plan = [];
         try {
             const content = (response as any).content;
             // Clean markdown code blocks if present
-            const jsonStr = content.replace(/```json/g, "").replace(/```/g, "").trim();
-            plan = JSON.parse(jsonStr);
+            plan = repairJsonWithLatex(content);
         } catch (e) {
             console.error("Failed to parse outline JSON", e);
             // Fallback plan
@@ -275,14 +277,22 @@ export class ContentCreatorAgent {
                 mathInline?: string;
             }
 
-            ### IMPORTANT RULES
+            ### CRITICAL JSON FORMATTING RULES
+            ⚠️ ABSOLUTELY NO COMMENTS, NO EXPLANATIONS, NO MARKDOWN CODE BLOCKS ⚠️
+            - Output ONLY pure, valid JSON array starting with '[' and ending with ']'
+            - NO comments (no //, no /* */, no *//, no explanations before/after)
+            - NO markdown code fences - do not wrap output in code blocks
+            - NO text before or after the JSON array
+            - The response must be parseable by JSON.parse() directly
+            
+            ### CONTENT RULES
             1. Content must be EXTENSIVE (2000+ words equivalent).
             2. Use "equation" blocks for main formulas. Use "mathInline" span for inline math.
             3. STRICTLY ESCAPE LATEX BACKSLASHES in JSON strings. 
                Example: "\\lambda" must be written as "\\\\lambda". 
                Example: "\\frac{a}{b}" must be written as "\\\\frac{a}{b}".
             4. Do not use markdown for bold/italic. Use the Span object properties.
-            5. Output ONLY valid JSON array.
+            5. Every block MUST have an "id" field (use unique IDs like "b1", "b2", etc.)
             
             ### EXAMPLE OUTPUT
             [
@@ -312,21 +322,50 @@ export class ContentCreatorAgent {
             new MessagesPlaceholder("messages")
         ]);
 
-        const chain = prompt.pipe(this.llm);
+        // Use lower temperature model for structured JSON output
+        const chain = prompt.pipe(this.llmStructured);
         const response = await chain.invoke({ messages: state.messages });
 
         let sectionBlocks: Block[] = [];
         try {
             const content = (response as any).content;
-            sectionBlocks = repairJsonWithLatex(content);
-        } catch (e) {
-            console.error(`Failed to parse section JSON for ${section.title}`, e);
-            // Fallback to a simple paragraph block
+            const parsed = repairJsonWithLatex(content);
+            
+            // Ensure we got an array
+            if (!Array.isArray(parsed)) {
+                throw new Error("Parsed JSON is not an array");
+            }
+            
+            // Validate blocks have required fields and add IDs if missing
+            sectionBlocks = parsed.map((block: any, idx: number) => {
+                if (!block || typeof block !== 'object' || !block.type) {
+                    console.warn("Skipping invalid block:", block);
+                    return null;
+                }
+                // Ensure block has an ID
+                if (!block.id) {
+                    block.id = `block-${Date.now()}-${idx}`;
+                }
+                return block;
+            }).filter((block: any) => block !== null);
+            
+            if (sectionBlocks.length === 0) {
+                throw new Error("No valid blocks found in parsed JSON");
+            }
+        } catch (e: any) {
+            console.error(`Failed to parse section JSON for ${section.title}:`, e.message);
+            // Fallback to a simple paragraph block with the raw content
+            const rawContent = (response as any).content;
+            // Try to extract some text from the raw content if it's not valid JSON
+            const textContent = rawContent.length > 5000 
+                ? rawContent.substring(0, 5000) + "... (truncated due to parsing error)"
+                : rawContent;
+            
             sectionBlocks = [
                 {
-                    id: "error-fallback",
+                    id: `error-fallback-${Date.now()}`,
                     type: "paragraph",
-                    content: [{ text: (response as any).content }]
+                    content: [{ text: `[Content generation error for "${section.title}"]\n\n${textContent}` }]
                 } as any
             ];
         }
@@ -340,8 +379,8 @@ export class ContentCreatorAgent {
         const index = state.current_section_index;
 
         const allSections = [...state.sections_content];
-        const lastSection = allSections[allSections.length - 1];
-        const sectionTitle = lastSection.title;
+        const sectionPlan = state.content_plan[index];
+        const sectionTitle = sectionPlan?.title || "Unknown Section";
         const topicName = state.current_subtopic_data.TopicName;
 
         console.log(`Finding resources for: ${sectionTitle}`);
@@ -356,7 +395,7 @@ export class ContentCreatorAgent {
             const searchResults = rawData.results || [];
 
             resources = searchResults.slice(0, 3).map((res: any) => ({
-                type: res.url.includes("youtube") || res.url.includes("vimeo") ? "video" : "article",
+                kind: res.url.includes("youtube") || res.url.includes("vimeo") ? "video" : "article",
                 title: res.title || "External Resource",
                 url: res.url
             }));

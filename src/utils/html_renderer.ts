@@ -122,7 +122,8 @@ function renderBlock(block: Block): string {
 
         case "list":
             const ListTag = block.style === "ordered" ? "ol" : "ul";
-            const itemsHtml = block.items.map(item => `<li>${renderSpans(item.content)}</li>`).join('');
+            const items = block.items || [];
+            const itemsHtml = items.map(item => `<li>${renderSpans(item.content)}</li>`).join('');
             return `<${ListTag}>${itemsHtml}</${ListTag}>`;
 
         case "callout":
@@ -138,19 +139,35 @@ function renderBlock(block: Block): string {
             return `<pre><code>${block.code}</code></pre>`;
 
         case "resources":
+            const resourcesBlock = block as any;
+            const resources = (resourcesBlock.items && Array.isArray(resourcesBlock.items)) ? resourcesBlock.items : [];
+            if (resources.length === 0) {
+                return '<div class="resources"><h3>Further Resources</h3><p>No resources available.</p></div>';
+            }
             return `<div class="resources">
                 <h3>Further Resources</h3>
-                ${block.items.map(item => `
+                ${resources.map((item: any) => {
+                    if (!item) return '';
+                    // Support both 'kind' and 'type' for backward compatibility
+                    const kind = item.kind || item.type || 'article';
+                    const title = item.title || 'Untitled Resource';
+                    const url = item.url || '#';
+                    return `
                     <div class="resource-item">
-                        <span class="resource-tag tag-${item.kind}">${item.kind}</span>
-                        <a href="${item.url}" target="_blank">${item.title}</a>
+                        <span class="resource-tag tag-${kind}">${kind}</span>
+                        <a href="${url}" target="_blank">${title}</a>
                     </div>
-                `).join('')}
+                `;
+                }).join('')}
             </div>`;
 
         case "table":
-            const headerHtml = block.header ? `<thead>${block.header.map(row => `<tr>${row.cells.map(cell => `<th>${renderSpans(cell.content)}</th>`).join('')}</tr>`).join('')}</thead>` : '';
-            const bodyHtml = `<tbody>${block.rows.map(row => `<tr>${row.cells.map(cell => `<td>${renderSpans(cell.content)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+            const headerHtml = (block.header && Array.isArray(block.header))
+                ? `<thead>${block.header.map(row => `<tr>${(row.cells || []).map(cell => `<th>${renderSpans(cell.content || [])}</th>`).join('')}</tr>`).join('')}</thead>`
+                : '';
+            const bodyHtml = (block.rows && Array.isArray(block.rows))
+                ? `<tbody>${block.rows.map(row => `<tr>${(row.cells || []).map(cell => `<td>${renderSpans(cell.content || [])}</td>`).join('')}</tr>`).join('')}</tbody>`
+                : '';
             return `<table>${headerHtml}${bodyHtml}</table>`;
 
         case "divider":
@@ -162,8 +179,11 @@ function renderBlock(block: Block): string {
 }
 
 function renderSpans(spans: InlineSpan[]): string {
+    if (!spans || !Array.isArray(spans)) return '';
+
     return spans.map(span => {
-        let text = span.text;
+        if (!span) return '';
+        let text = span.text || '';
 
         if (span.bold) text = `<strong>${text}</strong>`;
         if (span.italic) text = `<em>${text}</em>`;

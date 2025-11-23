@@ -1,29 +1,53 @@
 export function repairJsonWithLatex(text: string): any {
     // 1. Remove markdown code blocks
     let cleanText = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    
+    // 2. Remove comments (both // and /* */ style)
+    // Remove single-line comments (// ...)
+    cleanText = cleanText.replace(/\/\/.*$/gm, "");
+    // Remove multi-line comments (/* ... */)
+    cleanText = cleanText.replace(/\/\*[\s\S]*?\*\//g, "");
+    // Remove trailing comment-like patterns (*//)
+    cleanText = cleanText.replace(/\*\/\/\s*/g, "");
+    
+    cleanText = cleanText.trim();
 
-    // 2. Try parsing directly first
+    // 3. Try parsing directly first
     try {
         return JSON.parse(cleanText);
     } catch (e) {
         // console.log("Direct parse failed, attempting repair...");
     }
 
-    // 3. Heuristic Repair Strategy
-    // The most common issue is single backslashes in LaTeX strings (e.g. "\lambda") 
-    // which are invalid in JSON strings (should be "\\lambda").
+    // 4. Try to extract JSON array/object if wrapped in text
+    const jsonMatch = cleanText.match(/\[[\s\S]*\]/) || cleanText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+        cleanText = jsonMatch[0];
+    }
 
-    // We want to replace single backslashes with double backslashes, 
-    // BUT NOT if they are already escaped (\\) or part of a valid escape sequence (\n, \t, \", etc).
-
-    // Valid JSON escape sequences: \" \\ \/ \b \f \n \r \t \uXXXX
-    // We want to preserve these.
-    // We want to escape everything else.
-
+    // 4. Heuristic Repair Strategy
     let fixedText = "";
     let i = 0;
+    let inString = false;
+    let escapeNext = false;
+
     while (i < cleanText.length) {
         const char = cleanText[i];
+
+        if (escapeNext) {
+            // We're escaping the current character
+            fixedText += char;
+            escapeNext = false;
+            i++;
+            continue;
+        }
+
+        if (char === '"') {
+            inString = !inString;
+            fixedText += char;
+            i++;
+            continue;
+        }
 
         if (char === '\\') {
             // Check next character
@@ -57,19 +81,68 @@ export function repairJsonWithLatex(text: string): any {
                 // Trailing backslash at end of string? Escape it.
                 fixedText += "\\\\";
                 i++;
+                continue;
             }
-        } else {
-            fixedText += char;
-            i++;
         }
+
+        // Handle control characters in strings
+        if (inString) {
+            if (char === '\n') {
+                fixedText += "\\n";
+                i++;
+                continue;
+            }
+            if (char === '\r') {
+                fixedText += "\\r";
+                i++;
+                continue;
+            }
+            if (char === '\t') {
+                fixedText += "\\t";
+                i++;
+                continue;
+            }
+        }
+
+        fixedText += char;
+        i++;
     }
 
+    // 5. Try to fix common JSON issues
+    // Remove trailing commas before closing brackets/braces
+    fixedText = fixedText.replace(/,(\s*[}\]])/g, '$1');
+    
+    // Try parsing
     try {
         return JSON.parse(fixedText);
-    } catch (e) {
-        // console.error("Repair failed", e);
-        // console.log("Original text snippet:", cleanText.substring(0, 200));
-        // console.log("Fixed text snippet:", fixedText.substring(0, 200));
+    } catch (e: any) {
+        // If still failing, try to extract valid blocks from partial JSON
+        const errorMatch = e.message?.match(/position (\d+)/);
+        if (errorMatch) {
+            const pos = parseInt(errorMatch[1]);
+            // Try to parse up to the error position
+            const truncated = fixedText.substring(0, pos);
+            // Find the last complete block
+            const lastCompleteBlock = truncated.lastIndexOf('},');
+            if (lastCompleteBlock > 0) {
+                const partialJson = fixedText.substring(0, lastCompleteBlock + 1) + ']';
+                try {
+                    const partial = JSON.parse(partialJson);
+                    console.warn(`Parsed partial JSON (${partial.length} blocks) due to syntax error at position ${pos}`);
+                    return partial;
+                } catch (e2) {
+                    // Ignore
+                }
+            }
+            
+            // Last resort: log the error with context
+            const startPos = Math.max(0, pos - 100);
+            const endPos = Math.min(fixedText.length, pos + 100);
+            const errorContext = fixedText.substring(startPos, endPos);
+            console.error(`JSON repair failed at position ${pos}. Error context: ...${errorContext}...`);
+        } else {
+            console.error(`JSON repair failed: ${e.message}`);
+        }
         throw e;
     }
 }
