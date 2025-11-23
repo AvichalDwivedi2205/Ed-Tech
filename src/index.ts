@@ -133,17 +133,40 @@ async function runContentCreator() {
     }
 
     const roadmapJson = await fs.readJson(roadmapPath);
+    let completedSubtopics: string[] = [];
 
     console.log("\nStarting Content Creator Agent...\n");
 
-    const result = await agent.graph.invoke({
-        roadmap_json: roadmapJson
-    });
+    while (true) {
+        const result = await agent.graph.invoke({
+            roadmap_json: roadmapJson,
+            completed_subtopics: completedSubtopics
+        });
 
-    if (result.content_complete) {
-        console.log("\nContent generation completed!");
-    } else {
-        console.log("\nContent generation finished (check logs).");
+        const subtopicId = result.current_subtopic_id;
+
+        if (!subtopicId) {
+            console.log("\nAll subtopics processed!");
+            break;
+        }
+
+        // Mark as completed
+        completedSubtopics.push(subtopicId);
+
+        // Ask user if they want to continue
+        const { continueGen } = await inquirer.prompt([
+            {
+                type: "confirm",
+                name: "continueGen",
+                message: `Content generated for "${result.current_subtopic_data?.TopicName}". Continue to next subtopic?`,
+                default: true
+            }
+        ]);
+
+        if (!continueGen) {
+            console.log("\nStopping content generation.");
+            break;
+        }
     }
 }
 

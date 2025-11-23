@@ -13,26 +13,16 @@ export class PerplexitySearchTool {
         }
     }
 
-    async run(query: string, maxResults: number = 8): Promise<string> {
+    async runRaw(query: string): Promise<any> {
         try {
+            // Use the new Search API endpoint
+            // Docs: https://docs.perplexity.ai/guides/search-quickstart
             const response = await axios.post(
-                "https://api.perplexity.ai/chat/completions",
+                "https://api.perplexity.ai/search",
                 {
-                    model: "llama-3.1-sonar-small-128k-online",
-                    messages: [
-                        {
-                            role: "system",
-                            content: "Search the web and provide verified citations.",
-                        },
-                        {
-                            role: "user",
-                            content: query,
-                        },
-                    ],
-                    max_tokens: 2048,
-                    temperature: 0.2,
-                    return_citations: true,
-                    return_images: false,
+                    query: query,
+                    max_results: 5,
+                    // max_tokens_per_page: 1024 // Optional, controls snippet length
                 },
                 {
                     headers: {
@@ -41,9 +31,19 @@ export class PerplexitySearchTool {
                     },
                 }
             );
+            return response.data;
+        } catch (error: any) {
+            console.error(`Perplexity search failed: ${error.message}`);
+            // Return empty structure on error
+            return { results: [] };
+        }
+    }
 
-            const content = response.data.choices[0].message.content;
-            const citations = response.data.citations || [];
+    async run(query: string, maxResults: number = 8): Promise<string> {
+        try {
+            const data = await this.runRaw(query);
+            const content = data.choices[0].message.content;
+            const citations = data.citations || [];
 
             let formattedOutput = `=== Search Results for: ${query} ===\n\n`;
             formattedOutput += content + "\n\n";
@@ -72,7 +72,7 @@ export class TavilySearchTool {
         }
     }
 
-    async run(query: string, maxResults: number = 5): Promise<string> {
+    async runRaw(query: string, maxResults: number = 5): Promise<any> {
         try {
             const response = await axios.post(
                 "https://api.tavily.com/search",
@@ -89,9 +89,17 @@ export class TavilySearchTool {
                     },
                 }
             );
+            return response.data;
+        } catch (error: any) {
+            throw new Error(`Tavily search failed: ${error.message}`);
+        }
+    }
 
-            const results = response.data.results || [];
-            const answer = response.data.answer || "";
+    async run(query: string, maxResults: number = 5): Promise<string> {
+        try {
+            const data = await this.runRaw(query, maxResults);
+            const results = data.results || [];
+            const answer = data.answer || "";
 
             let formattedOutput = `=== Tavily Search Results for: ${query} ===\n\n`;
             if (answer) {
