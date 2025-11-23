@@ -1,0 +1,489 @@
+{
+  "TeachingStyle": "This roadmap is designed for a fast-paced learner with a foundational understanding of electrical engineering. It prioritizes efficient learning to achieve high grades by blending theoretical understanding with practical application, as outlined in the course syllabus. Key concepts are introduced concisely, followed by resources for deeper dives and hands-on practice, aligning with the course's strong lab component.",
+  "Introduction to Communication Systems and Linear Signal Processing": {
+    "TopicName": "Module I: Foundations of Communication Systems & Linear Signal Processing",
+    "ContentList": {
+      "videos": [
+        {
+          "title": "Overview of Communication Systems - Block Diagram",
+          "url": "https://www.youtube.com/watch?v=1d_11h7lq2Y",
+          "description": "A quick visual introduction to the basic components and block diagram of a communication system."
+        },
+        {
+          "title": "Fourier Series and Transform Fundamentals (for EE)",
+          "url": "https://www.youtube.com/watch?v=qXg44rL40Hk",
+          "description": "A concise review of Fourier analysis essential for understanding signal spectra in communication."
+        },
+        {
+          "title": "Energy and Power Signals Explained",
+          "url": "https://www.youtube.com/watch?v=F_fD83c9R9g",
+          "description": "Fast-paced explanation of energy and power signals with examples relevant to communication systems."
+        }
+      ],
+      "blogs": [
+        {
+          "title": "Understanding the Basic Communication System Model",
+          "url": "https://www.tutorialspoint.com/communication_systems/communication_systems_basics.htm",
+          "description": "A quick read on the fundamental block diagram and components of a communication system."
+        },
+        {
+          "title": "Signal Bandwidth and its Importance in Communication",
+          "url": "https://www.rfwireless-world.com/tutorials/bandwidth-tutorial.html",
+          "description": "Explains different types of bandwidth and their relevance in communication systems."
+        }
+      ],
+      "books": [
+        {
+          "title": "Modern Digital and Analog Communication Systems",
+          "author": "B.P. Lathi and Zhi Ding",
+          "description": "Chapters 1 and 2 provide an excellent overview and review of signals and systems. Focus on definitions and key properties."
+        },
+        {
+          "title": "Communication Systems",
+          "author": "Simon Haykin & Michael Moher",
+          "description": "Chapter 2 offers a clear and concise review of signals and linear systems in the context of communications."
+        }
+      ],
+      "topics": [
+        "Overview of Communication Systems",
+        "Taxonomy of Communication",
+        "Block-level Description of a Communication System",
+        "Deterministic Signals (Energy and Power)",
+        "Fourier Series and Transform Review",
+        "Correlation Functions",
+        "Energy and Power Spectral Densities (PSD/ESD)",
+        "Bandwidth",
+        "Hilbert Transform",
+        "Bandpass Signals and Systems",
+        "Linear Filters",
+        "Signal Transmission over Communication Channel",
+        "Distortion over Channels"
+      ]
+    },
+    "SuggestedTimeToComplete": "5 Lectures"
+  },
+  "Analog Modulation and Demodulation": {
+    "TopicName": "Module II: Analog Modulation and Demodulation",
+    "ContentList": {
+      "videos": [
+        {
+          "title": "Amplitude Modulation (AM) Explained Simply",
+          "url": "https://www.youtube.com/watch?v=9_76W-Q9QW4",
+          "description": "A concise explanation of AM, DSB-SC, and SSB-SC principles."
+        },
+        {
+          "title": "Frequency Modulation (FM) Basics",
+          "url": "https://www.youtube.com/watch?v=f2O96m8Lg38",
+          "description": "Quick overview of FM generation and characteristics, including Carson's Rule."
+        },
+        {
+          "title": "Superheterodyne Receiver Explained",
+          "url": "https://www.youtube.com/watch?v=Yf1eJz8Sj_A",
+          "description": "Visual explanation of how superheterodyne receivers work, crucial for practical understanding."
+        },
+        {
+          "title": "Phase-Locked Loop (PLL) Introduction",
+          "url": "https://www.youtube.com/watch?v=hO7g_A-Sj68",
+          "description": "A fast-paced introduction to PLL operation and its role in FM demodulation."
+        }
+      ],
+      "blogs": [
+        {
+          "title": "Types of Amplitude Modulation",
+          "url": "https://www.electronics-notes.com/articles/radio/modulation/amplitude-modulation.php",
+          "description": "Brief descriptions of DSB-SC, SSB-SC, VSB, and standard AM."
+        },
+        {
+          "title": "Frequency Division Multiplexing (FDM)",
+          "url": "https://www.geeksforgeeks.org/frequency-division-multiplexing-fdm/",
+          "description": "A quick explanation of FDM principles."
+        }
+      ],
+      "books": [
+        {
+          "title": "Modern Digital and Analog Communication Systems",
+          "author": "B.P. Lathi and Zhi Ding",
+          "description": "Chapters 3 and 4 cover amplitude and angle modulation techniques respectively. Focus on the mathematical representations, bandwidth, and power requirements."
+        },
+        {
+          "title": "Communication Systems",
+          "author": "Simon Haykin & Michael Moher",
+          "description": "Chapters 3 and 4 offer alternative perspectives on analog modulation, useful for a fast-paced learner to compare and solidify understanding."
+        }
+      ],
+      "topics": [
+        "Amplitude Modulation Techniques (DSB-SC, SSB-SC, VSB, AM with carrier)",
+        "Bandwidth and Power Requirements of AM",
+        "Generation and Demodulation Circuits for AM",
+        "Frequency Division Multiplexing (FDM)",
+        "Superheterodyne Receivers",
+        "Angle Modulation Techniques (FM, PM)",
+        "Transmitter and Receivers for FM/PM",
+        "Interference and Bandwidth Considerations for FM/PM",
+        "Comparison of AM with FM/PM",
+        "FM Generation and Demodulation",
+        "Phase-Locked Loop (PLL)"
+      ]
+    },
+    "SuggestedTimeToComplete": "10 Lectures"
+  },
+  "Digital Signal Representation and Transmission": {
+    "TopicName": "Module III: Digital Signal Representation and Transmission",
+    "ContentList": {
+      "videos": [
+        {
+          "title": "Pulse Code Modulation (PCM) Explained",
+          "url": "https://www.youtube.com/watch?v=y2o03c8091M",
+          "description": "A concise explanation of sampling, quantization, and encoding in PCM."
+        },
+        {
+          "title": "Line Coding Techniques",
+          "url": "https://www.youtube.com/watch?v=Ue29o9b7e9Q",
+          "description": "Quick overview of common line codes like NRZ, RZ, Manchester, and their PSD implications."
+        },
+        {
+          "title": "Inter-Symbol Interference (ISI) and Eye Diagrams",
+          "url": "https://www.youtube.com/watch?v=E6j_M29y0u8",
+          "description": "Visual explanation of ISI and how eye diagrams are used to analyze it."
+        },
+        {
+          "title": "Introduction to Digital Modulation (ASK, PSK, FSK)",
+          "url": "https://www.youtube.com/watch?v=w6-y4eW073Y",
+          "description": "Fast-paced introduction to binary and M-ary digital modulation schemes."
+        }
+      ],
+      "blogs": [
+        {
+          "title": "Quantization in Digital Communication",
+          "url": "https://www.rfwireless-world.com/tutorials/quantization-tutorial.html",
+          "description": "Brief explanation of quantization and its types."
+        },
+        {
+          "title": "Nyquist Criterion for ISI-free Transmission",
+          "url": "https://www.electronics-notes.com/articles/communications/data-transmission/nyquist-criterion.php",
+          "description": "A quick read on the theoretical basis for distortionless transmission."
+        }
+      ],
+      "books": [
+        {
+          "title": "Modern Digital and Analog Communication Systems",
+          "author": "B.P. Lathi and Zhi Ding",
+          "description": "Chapter 5 covers pulse modulation and digital representation. Chapters 8 and 9 delve into baseband and passband digital modulation respectively. Focus on the principles and their practical implications."
+        },
+        {
+          "title": "Communication Systems",
+          "author": "Simon Haykin & Michael Moher",
+          "description": "Chapter 7 provides insights into digital signal representation, while relevant sections in other chapters cover digital modulation."
+        }
+      ],
+      "topics": [
+        "Pulse Modulation",
+        "Quantization and Encoding",
+        "PCM (Pulse Code Modulation)",
+        "Differential PCM (DPCM)",
+        "Delta Modulation",
+        "Baseband Line Codes (NRZ, Polar, Manchester)",
+        "PSD of Line Codes",
+        "Inter-Symbol Interference (ISI)",
+        "Eye Diagram",
+        "Nyquist Criterion for Distortionless Transmission",
+        "Pulse Shaping",
+        "Binary Digital Modulation (ASK, PSK, FSK)",
+        "M-ary PAM",
+        "M-ary PSK",
+        "QAM (Quadrature Amplitude Modulation)",
+        "M-ary FSK",
+        "Concept of Symbol Rate/Baud Rate"
+      ]
+    },
+    "SuggestedTimeToComplete": "6 Lectures"
+  },
+  "Noise in Communication Systems": {
+    "TopicName": "Module IV: Noise in Communication Systems",
+    "ContentList": {
+      "videos": [
+        {
+          "title": "Probability and Random Variables Review (for EE)",
+          "url": "https://www.youtube.com/watch?v=xT0P-f0tVbQ",
+          "description": "A concise recap of probability, random variables, and basic statistics for engineers."
+        },
+        {
+          "title": "Introduction to Random Processes and PSD",
+          "url": "https://www.youtube.com/watch?v=R0_oR5qJ2aU",
+          "description": "Fast-paced overview of random processes, statistical averages, and Power Spectral Density."
+        },
+        {
+          "title": "Noise in Communication Systems - Types and Sources",
+          "url": "https://www.youtube.com/watch?v=4fO6v32LgXk",
+          "description": "Explains different types of noise encountered in communication systems and their characteristics."
+        },
+        {
+          "title": "SNR Analysis for Analog Modulation",
+          "url": "https://www.youtube.com/watch?v=1oWd4v9P72g",
+          "description": "Quick examples and derivation of SNR for AM and FM systems."
+        }
+      ],
+      "blogs": [
+        {
+          "title": "Gaussian Process Fundamentals",
+          "url": "https://towardsdatascience.com/gaussian-processes-a-simple-introduction-ee6e10f1352e",
+          "description": "Conceptual introduction to Gaussian processes."
+        },
+        {
+          "title": "Noise Figure and Noise Temperature Explained",
+          "url": "https://www.rfwireless-world.com/tutorials/noise-figure-tutorial.html",
+          "description": "Brief explanation of these key noise performance metrics."
+        }
+      ],
+      "books": [
+        {
+          "title": "Modern Digital and Analog Communication Systems",
+          "author": "B.P. Lathi and Zhi Ding",
+          "description": "Chapter 6 introduces random variables and processes, and chapter 7 focuses on analog demodulation under noise. Focus on the core concepts of probability and how noise affects analog systems."
+        },
+        {
+          "title": "Probability, random variables, and stochastic processes",
+          "author": "A. Papoulis, S. Unnikrishna Pillai",
+          "description": "Chapters 4 and 9 are excellent for a deeper dive into probability and random processes, if needed, but focus on sections relevant to communication systems."
+        },
+        {
+          "title": "Communication Systems",
+          "author": "Simon Haykin & Michael Moher",
+          "description": "Chapter 6 provides an alternative treatment of noise in analog systems."
+        }
+      ],
+      "topics": [
+        "Recap of Probability, Random Variables & Processes",
+        "Statistical Averages",
+        "Power Spectral Density of Random Processes",
+        "Gaussian Process",
+        "Bandpass Random Process",
+        "Nature of Noise",
+        "Noise Figure",
+        "Analog Demodulation under Additive Noise",
+        "Performance of AM and Angle Demodulation Systems in Noise"
+      ]
+    },
+    "SuggestedTimeToComplete": "6 Lectures"
+  },
+  "Digital Modulations and Performance in Noise": {
+    "TopicName": "Module V: Digital Modulations and Performance in Noise",
+    "ContentList": {
+      "videos": [
+        {
+          "title": "Bit Error Rate (BER) and Probability of Error",
+          "url": "https://www.youtube.com/watch?v=L2GjHjI3f7A",
+          "description": "Clear explanation of BER and its calculation for basic digital modulation schemes."
+        },
+        {
+          "title": "Matched Filter Receiver Intuition",
+          "url": "https://www.youtube.com/watch?v=S3nI60yX-3E",
+          "description": "Conceptual understanding of the matched filter's role in optimal detection."
+        },
+        {
+          "title": "Signal Space and Constellation Diagrams",
+          "url": "https://www.youtube.com/watch?v=4YmI-vVn71o",
+          "description": "Visual introduction to signal space representation and constellation points for M-ary modulation."
+        },
+        {
+          "title": "Introduction to Spread Spectrum Communication",
+          "url": "https://www.youtube.com/watch?v=f-B4hGqH4h0",
+          "description": "A quick overview of spread spectrum concepts and benefits."
+        }
+      ],
+      "blogs": [
+        {
+          "title": "Optimal Threshold Detection for Binary Signals",
+          "url": "https://www.rfwireless-world.com/tutorials/optimal-threshold-detector.html",
+          "description": "Brief explanation of how optimal thresholds are set."
+        },
+        {
+          "title": "Gram-Schmidt Orthogonalization for Signal Space",
+          "url": "https://www.gaussianwaves.com/2012/09/gram-schmidt-orthogonalization-procedure/",
+          "description": "Step-by-step example of Gram-Schmidt procedure."
+        }
+      ],
+      "books": [
+        {
+          "title": "Modern Digital and Analog Communication Systems",
+          "author": "B.P. Lathi and Zhi Ding",
+          "description": "Chapter 6 (revisiting noise), Chapter 9 (digital modulation performance), and Chapter 10 (spread spectrum). Focus on BER derivation and understanding optimal receiver structures."
+        },
+        {
+          "title": "Communication Systems Engineering",
+          "author": "John G. Proakis, Masoud Salehi",
+          "description": "Chapter 8 provides a solid foundation on digital modulation and its noise performance, complementing T1."
+        }
+      ],
+      "topics": [
+        "Digital Demodulation under Additive Noise",
+        "Probability of Error (Pe) due to Noise",
+        "Detection of Digital Signal in Noise",
+        "Optimal Threshold Detection",
+        "Bit Error Probability (BER) Concepts",
+        "Matched Filter and Optimum Receivers",
+        "Coherent and Non-coherent Detection of Digital Carrier Modulations",
+        "Signal Space Analysis",
+        "Constellation Diagrams",
+        "Gram-Schmidt Orthogonalization",
+        "M-ary Modulations",
+        "Noise Performance of M-ary Digital Modulations",
+        "Concept of Spread Spectrum"
+      ]
+    },
+    "SuggestedTimeToComplete": "8 Lectures"
+  },
+  "Information Theory and Channel Coding": {
+    "TopicName": "Module VI: Information Theory and Channel Coding",
+    "ContentList": {
+      "videos": [
+        {
+          "title": "Introduction to Information Theory, Entropy, and Channel Capacity",
+          "url": "https://www.youtube.com/watch?v=nCgC4iF4p_s",
+          "description": "A high-level, fast-paced overview of the core concepts of information theory."
+        },
+        {
+          "title": "Huffman Coding Explained",
+          "url": "https://www.youtube.com/watch?v=nkP8G6m_c-g",
+          "description": "A clear, concise explanation of Huffman coding with examples."
+        },
+        {
+          "title": "Shannon's Channel Capacity Theorem",
+          "url": "https://www.youtube.com/watch?v=b04H5c7Q48Y",
+          "description": "Conceptual understanding of Shannon's limit and its implications."
+        },
+        {
+          "title": "Introduction to Error Correcting Codes (Hamming Code)",
+          "url": "https://www.youtube.com/watch?v=X8jsQ209pTs",
+          "description": "Quick explanation of the purpose of channel coding and a basic example (Hamming)."
+        }
+      ],
+      "blogs": [
+        {
+          "title": "Mutual Information and Channel Capacity",
+          "url": "https://towardsdatascience.com/mutual-information-and-channel-capacity-in-communication-systems-9c9a6b6f7f6f",
+          "description": "Conceptual explanation of mutual information and its relation to channel capacity."
+        },
+        {
+          "title": "Linear Block Codes Basics",
+          "url": "https://www.geeksforgeeks.org/linear-block-codes-in-digital-communication/",
+          "description": "Brief introduction to linear block codes."
+        }
+      ],
+      "books": [
+        {
+          "title": "Modern Digital and Analog Communication Systems",
+          "author": "B.P. Lathi and Zhi Ding",
+          "description": "Chapters 12 and 13 are dedicated to information theory and channel coding. Focus on the definitions of entropy, channel capacity, and the principles of common coding schemes."
+        },
+        {
+          "title": "Communication Systems Engineering",
+          "author": "John G. Proakis, Masoud Salehi",
+          "description": "Chapters 6 and 9 offer strong coverage of information theory and coding, providing additional depth."
+        }
+      ],
+      "topics": [
+        "Measure of Information",
+        "Entropy",
+        "Source Encoding (Shannon-Fano, Huffman Code)",
+        "Data Compression",
+        "Mutual Information and Channel Capacity",
+        "Channel Capacity of AWGN Channel",
+        "Shannon's Theorem and Limits",
+        "Digital Transceiver Design Principles",
+        "Error Detection and Correction Codes",
+        "Hamming Codes",
+        "Linear Block Codes",
+        "Cyclic Codes"
+      ]
+    },
+    "SuggestedTimeToComplete": "6 Lectures"
+  },
+  "Concluding Insights and Recent Trends": {
+    "TopicName": "Module VII: Concluding Insights and Recent Trends",
+    "ContentList": {
+      "videos": [
+        {
+          "title": "Future of Communication Systems (5G/6G)",
+          "url": "https://www.youtube.com/watch?v=J3i-f-h-Vck",
+          "description": "A high-level overview of emerging trends and technologies in communication."
+        },
+        {
+          "title": "MIMO Technology Explained",
+          "url": "https://www.youtube.com/watch?v=0h5oK_tL_7U",
+          "description": "A simplified explanation of Multiple-Input Multiple-Output (MIMO) systems."
+        }
+      ],
+      "blogs": [
+        {
+          "title": "Key Technologies of 5G",
+          "url": "https://www.qualcomm.com/5g/what-is-5g/5g-key-technologies",
+          "description": "Brief articles on technologies driving next-generation communication."
+        }
+      ],
+      "books": [],
+      "topics": [
+        "Summary of Key Concepts",
+        "Discussions on Recent Technologies",
+        "MIMO",
+        "Cognitive Radio",
+        "5G/6G Communication"
+      ]
+    },
+    "SuggestedTimeToComplete": "1 Lecture"
+  },
+  "Practical Component: Simulation & Hardware Labs": {
+    "TopicName": "Practical Component: Simulation & Hardware Labs",
+    "ContentList": {
+      "videos": [
+        {
+          "title": "MATLAB for Communication Systems Simulation",
+          "url": "https://www.youtube.com/watch?v=MFLQzP1H1-M",
+          "description": "Introduction to using MATLAB for basic communication system simulations."
+        },
+        {
+          "title": "Python for Digital Signal Processing",
+          "url": "https://www.youtube.com/watch?v=x_J2T11O36c",
+          "description": "Overview of Python libraries like SciPy and NumPy for signal processing tasks."
+        },
+        {
+          "title": "Introduction to Software Defined Radio (SDR)",
+          "url": "https://www.youtube.com/watch?v=R2j1zH24y7o",
+          "description": "Conceptual introduction to SDR and its capabilities."
+        }
+      ],
+      "blogs": [
+        {
+          "title": "Object-Oriented Programming in Python for Engineers",
+          "url": "https://realpython.com/python3-object-oriented-programming/",
+          "description": "A fast-paced guide to OOP in Python, useful for the lab's modular design."
+        },
+        {
+          "title": "Basic MATLAB Commands for Signal Processing",
+          "url": "https://www.mathworks.com/help/signal/ug/basic-commands.html",
+          "description": "Quick reference for essential MATLAB functions."
+        }
+      ],
+      "books": [],
+      "topics": [
+        "Introduction to Python for Communication Systems (OOP, Data Structures)",
+        "Information Source Modeling (Analog & Digital Signals, Time/Frequency Analysis)",
+        "Transmitter Design (Convolution-based Filtering, Bandwidth-limited Signals)",
+        "Implementation of Bandlimited Channels (Wireline, Wireless, Noise)",
+        "Passband Analog Modulation Schemes (Tx Update)",
+        "Receiver Structures with Performance Metrics (SNR, RSSI) (Rx Update)",
+        "Emona Hardware Lab: Analog Modulation Demonstration",
+        "Real-time FM/AM E2E Transmission/Reception",
+        "Digital Baseband Transmission (ADC/DAC, Nyquist Signaling)",
+        "Matched Filter Receiver Design and BER Analysis (Rx Update)",
+        "Emona Hardware Lab: Digital Modulation Demonstration",
+        "Signal Constellation-based M-ary Digital Modulation (Tx/Rx Update)",
+        "Real-time Text Transmission with M-ary Schemes",
+        "Channel Coding and Decoding (Tx/Rx Update)",
+        "Introduction to SDR and E2E Integration with SDR",
+        "Project Evaluation: E2E Simulator Demo (real-time audio and text)"
+      ]
+    },
+    "SuggestedTimeToComplete": "Weekly throughout the course"
+  }
+}

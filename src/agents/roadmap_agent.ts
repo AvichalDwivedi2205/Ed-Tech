@@ -249,12 +249,27 @@ export class RoadmapGeneratorAgent {
         // 3. Generate Final JSON
         const finalPrompt = ChatPromptTemplate.fromMessages([
             new SystemMessage(`You are an expert roadmap generator. Create a comprehensive learning roadmap in JSON format ONLY.
-        
+        You are to **Very Very Strictly** follow the structure provided below:
         Structure:
         {
-            "TeachingStyle": "...",
-            "Subtopic1": { "TopicName": "...", "ContentList": { "videos": [], "blogs": [], "books": [], "topics": [] }, "SuggestedTimeToComplete": "..." },
-            ...
+          "TeachingStyle": "string",
+          "Subtopic1": {
+            "TopicName": "string",
+            "ContentList": {
+              "videos": [
+                { "title": "string", "url": "string", "description": "string" }
+              ],
+              "blogs": [
+                { "title": "string", "url": "string", "description": "string" }
+              ],
+              "books": [
+                { "title": "string", "author": "string", "description": "string" }
+              ],
+              "topics": [ "string", "string" ]
+            },
+            "SuggestedTimeToComplete": "string"
+          },
+          "Subtopic2": { ... }
         }
         
         ${roadmapContext ? `CRITICAL INSTRUCTION: The user has uploaded a specific syllabus/roadmap document. You MUST follow this document's structure and topics exactly.
@@ -270,7 +285,7 @@ export class RoadmapGeneratorAgent {
         Outline:
         ${outline}
         
-        IMPORTANT: Output ONLY valid JSON. Do not wrap in markdown code blocks.
+        IMPORTANT: Output ONLY valid JSON. Do not wrap in markdown code blocks. Ensure the "SubtopicX" keys follow a pattern like "Subtopic1", "Subtopic2", etc., or use descriptive unique keys if more appropriate, but the VALUES must match the structure above EXACTLY.
         `),
             new MessagesPlaceholder("messages")
         ]);
