@@ -113,13 +113,40 @@ export class ContentCreatorAgent {
     private async loadRoadmap(state: typeof ContentAgentState.State) {
         const roadmapJson = state.roadmap_json;
         const keys = Object.keys(roadmapJson);
-        const completed = state.completed_subtopics || [];
+        let completed = state.completed_subtopics || [];
+
+        // Check for existing content on disk to avoid re-generating
+        const generatedDir = path.join(process.cwd(), "generated_content");
+        if (await fs.pathExists(generatedDir)) {
+            for (const key of keys) {
+                const val = roadmapJson[key];
+                if (typeof val === 'object' && val !== null && val.TopicName) {
+                    const safeFolderName = key.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                    const contentPath = path.join(generatedDir, safeFolderName, "content.json");
+
+                    if (await fs.pathExists(contentPath)) {
+                        if (!completed.includes(key)) {
+                            completed = [...completed, key];
+                        }
+                    }
+                }
+            }
+        }
+
         const pendingSubtopics = keys.filter(key => {
             const val = roadmapJson[key];
             return typeof val === 'object' && val !== null && val.TopicName && !completed.includes(key);
         });
+
         console.log(`Found ${pendingSubtopics.length} pending subtopics.`);
-        return { pending_subtopics: pendingSubtopics };
+        if (completed.length > 0) {
+            console.log(`Skipping ${completed.length} already generated subtopics.`);
+        }
+
+        return {
+            pending_subtopics: pendingSubtopics,
+            completed_subtopics: completed
+        };
     }
 
     private async getNextSubtopic(state: typeof ContentAgentState.State) {
@@ -330,12 +357,12 @@ export class ContentCreatorAgent {
         try {
             const content = (response as any).content;
             const parsed = repairJsonWithLatex(content);
-            
+
             // Ensure we got an array
             if (!Array.isArray(parsed)) {
                 throw new Error("Parsed JSON is not an array");
             }
-            
+
             // Validate blocks have required fields and add IDs if missing
             sectionBlocks = parsed.map((block: any, idx: number) => {
                 if (!block || typeof block !== 'object' || !block.type) {
@@ -348,7 +375,7 @@ export class ContentCreatorAgent {
                 }
                 return block;
             }).filter((block: any) => block !== null);
-            
+
             if (sectionBlocks.length === 0) {
                 throw new Error("No valid blocks found in parsed JSON");
             }
@@ -357,10 +384,10 @@ export class ContentCreatorAgent {
             // Fallback to a simple paragraph block with the raw content
             const rawContent = (response as any).content;
             // Try to extract some text from the raw content if it's not valid JSON
-            const textContent = rawContent.length > 5000 
+            const textContent = rawContent.length > 5000
                 ? rawContent.substring(0, 5000) + "... (truncated due to parsing error)"
                 : rawContent;
-            
+
             sectionBlocks = [
                 {
                     id: `error-fallback-${Date.now()}`,
