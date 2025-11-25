@@ -80,22 +80,8 @@ export class QuizGeneratorAgent {
         const contentJson = await fs.readJson(contentPath);
 
         // Extract text content for the LLM
-        let fullText = "";
-        if (contentJson.blocks) {
-            contentJson.blocks.forEach((block: any) => {
-                if (block.type === 'paragraph' || block.type === 'heading') {
-                    if (Array.isArray(block.content)) {
-                        fullText += block.content.map((s: any) => s.text).join("") + "\n\n";
-                    }
-                } else if (block.type === 'list') {
-                    block.items.forEach((item: any) => {
-                        if (Array.isArray(item.content)) {
-                            fullText += "- " + item.content.map((s: any) => s.text).join("") + "\n";
-                        }
-                    });
-                }
-            });
-        }
+        // Now we use the markdown string directly
+        let fullText = contentJson.markdown || "";
 
         // Truncate if too long (approx 15k chars to fit context window comfortably with output)
         if (fullText.length > 20000) {
