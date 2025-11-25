@@ -1,17 +1,26 @@
-import { Doc, Block, InlineSpan } from "../types/content_schema";
-
-export function renderDocToHtml(doc: Doc): string {
-    const blocksHtml = doc.blocks.map(renderBlock).join('\n');
+export function renderMarkdownToHtml(markdown: string, title: string): string {
+    // Escape backticks in markdown to safely embed in JS string
+    const safeMarkdown = markdown.replace(/`/g, "\\`").replace(/\${/g, "\\${");
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${doc.title}</title>
+    <title>${title}</title>
+    
+    <!-- KaTeX for Math -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <!-- Marked for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Highlight.js for Code -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
     <style>
         :root {
             --primary: #2563eb;
@@ -25,7 +34,7 @@ export function renderDocToHtml(doc: Doc): string {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             line-height: 1.6;
             color: var(--text);
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 2rem;
             background: var(--bg);
@@ -35,171 +44,129 @@ export function renderDocToHtml(doc: Doc): string {
         h2 { font-size: 1.8rem; border-bottom: 1px solid var(--gray-100); padding-bottom: 0.5rem; }
         p { margin-bottom: 1rem; }
         
+        /* Callouts */
         .callout {
             padding: 1rem;
             border-radius: 0.5rem;
             margin: 1.5rem 0;
             border-left: 4px solid;
+            background: var(--gray-100);
         }
-        .callout-example { background: #f0fdf4; border-color: #22c55e; }
-        .callout-note { background: #eff6ff; border-color: #3b82f6; }
+        .callout-info { background: #eff6ff; border-color: #3b82f6; }
         .callout-warning { background: #fefce8; border-color: #eab308; }
-        .callout-title { font-weight: bold; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .callout-note { background: #f3f4f6; border-color: #6b7280; }
+        .callout-tip { background: #f0fdf4; border-color: #22c55e; }
         
-        .equation-block {
+        .callout-title { font-weight: bold; margin-bottom: 0.5rem; display: block; }
+        
+        /* Code Blocks */
+        pre {
+            background: #0d1117;
             padding: 1rem;
-            background: var(--gray-100);
             border-radius: 0.5rem;
-            text-align: center;
-            margin: 1.5rem 0;
             overflow-x: auto;
+            color: #c9d1d9;
         }
-        
         code {
-            background: var(--gray-100);
-            padding: 0.2rem 0.4rem;
-            border-radius: 0.25rem;
             font-family: 'Fira Code', monospace;
             font-size: 0.9em;
         }
-        pre code {
-            display: block;
-            padding: 1rem;
-            overflow-x: auto;
-        }
-        
-        .resources {
-            margin-top: 3rem;
-            padding-top: 2rem;
-            border-top: 2px solid var(--gray-200);
-        }
-        .resource-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-        .resource-tag {
-            font-size: 0.75rem;
-            font-weight: bold;
-            padding: 0.1rem 0.4rem;
+        p code {
+            background: var(--gray-100);
+            padding: 0.2rem 0.4rem;
             border-radius: 0.25rem;
-            text-transform: uppercase;
+            color: var(--text);
         }
-        .tag-video { background: #fee2e2; color: #991b1b; }
-        .tag-article { background: #dbeafe; color: #1e40af; }
-        
-        a { color: var(--primary); text-decoration: none; }
-        a:hover { text-decoration: underline; }
 
+        /* Tables */
         table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
         th, td { border: 1px solid var(--gray-200); padding: 0.75rem; text-align: left; }
         th { background: var(--gray-100); font-weight: bold; }
         
-        hr { border: 0; border-top: 2px solid var(--gray-100); margin: 2rem 0; }
+        blockquote {
+            border-left: 4px solid var(--gray-200);
+            padding-left: 1rem;
+            margin-left: 0;
+            color: #4b5563;
+        }
+
+        /* Resources */
+        .resources-block {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+        }
+        .resources-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
 <body>
-    <article>
-        <h1>${doc.title}</h1>
-        <div class="meta">
-            ${doc.meta?.topic ? `<span>Topic: ${doc.meta.topic}</span>` : ''}
-        </div>
-        ${blocksHtml}
+    <article id="content">
+        <!-- Content will be rendered here -->
     </article>
+
+    <script>
+        const rawMarkdown = \`${safeMarkdown}\`;
+
+        // Configure Marked
+        marked.use({
+            gfm: true,
+            breaks: true,
+            highlight: function(code, lang) {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+            }
+        });
+
+        // Custom Pre-processing for Callouts
+        // :::variant Title
+        // Content
+        // :::
+        function processCallouts(md) {
+            const regex = /:::(\w+)(?:[ \\t]+(.*?))?\\n([\\s\\S]*?)\\n:::/g;
+            return md.replace(regex, (match, variant, title, content) => {
+                const titleHtml = title ? \`<div class="callout-title">\${title}</div>\` : '';
+                // Recursively parse markdown in content
+                const contentHtml = marked.parse(content);
+                return \`<div class="callout callout-\${variant}">\${titleHtml}\${contentHtml}</div>\`;
+            });
+        }
+
+        // Custom Pre-processing for Resources
+        // :::resources
+        // - [kind] [Title](url)
+        // :::
+        function processResources(md) {
+            const regex = /:::resources\\n([\\s\\S]*?)\\n:::/g;
+            return md.replace(regex, (match, content) => {
+                const contentHtml = marked.parse(content);
+                return \`<div class="resources-block"><div class="resources-title">Resources</div>\${contentHtml}</div>\`;
+            });
+        }
+
+        // Process and Render
+        let processed = processCallouts(rawMarkdown);
+        processed = processResources(processed);
+        
+        document.getElementById('content').innerHTML = marked.parse(processed);
+
+        // Render Math
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false}
+                ],
+                throwOnError : false
+            });
+        });
+    </script>
 </body>
 </html>`;
 }
 
-function renderBlock(block: Block): string {
-    switch (block.type) {
-        case "heading":
-            const Tag = `h${block.level}` as any;
-            return `<${Tag}>${renderSpans(block.content)}</${Tag}>`;
-
-        case "paragraph":
-            return `<p>${renderSpans(block.content)}</p>`;
-
-        case "list":
-            const ListTag = block.style === "ordered" ? "ol" : "ul";
-            const items = block.items || [];
-            const itemsHtml = items.map(item => `<li>${renderSpans(item.content)}</li>`).join('');
-            return `<${ListTag}>${itemsHtml}</${ListTag}>`;
-
-        case "callout":
-            return `<div class="callout callout-${block.variant}">
-                ${block.title ? `<div class="callout-title">${block.icon || ''} ${renderSpans(block.title)}</div>` : ''}
-                <div class="callout-body">${renderSpans(block.content)}</div>
-            </div>`;
-
-        case "equation":
-            return `<div class="equation-block">$$ ${block.math} $$</div>`;
-
-        case "code":
-            return `<pre><code>${block.code}</code></pre>`;
-
-        case "resources":
-            const resourcesBlock = block as any;
-            const resources = (resourcesBlock.items && Array.isArray(resourcesBlock.items)) ? resourcesBlock.items : [];
-            if (resources.length === 0) {
-                return '<div class="resources"><h3>Further Resources</h3><p>No resources available.</p></div>';
-            }
-            return `<div class="resources">
-                <h3>Further Resources</h3>
-                ${resources.map((item: any) => {
-                    if (!item) return '';
-                    // Support both 'kind' and 'type' for backward compatibility
-                    const kind = item.kind || item.type || 'article';
-                    const title = item.title || 'Untitled Resource';
-                    const url = item.url || '#';
-                    return `
-                    <div class="resource-item">
-                        <span class="resource-tag tag-${kind}">${kind}</span>
-                        <a href="${url}" target="_blank">${title}</a>
-                    </div>
-                `;
-                }).join('')}
-            </div>`;
-
-        case "table":
-            const headerHtml = (block.header && Array.isArray(block.header))
-                ? `<thead>${block.header.map(row => `<tr>${(row.cells || []).map(cell => `<th>${renderSpans(cell.content || [])}</th>`).join('')}</tr>`).join('')}</thead>`
-                : '';
-            const bodyHtml = (block.rows && Array.isArray(block.rows))
-                ? `<tbody>${block.rows.map(row => `<tr>${(row.cells || []).map(cell => `<td>${renderSpans(cell.content || [])}</td>`).join('')}</tr>`).join('')}</tbody>`
-                : '';
-            return `<table>${headerHtml}${bodyHtml}</table>`;
-
-        case "divider":
-            return `<hr />`;
-
-        default:
-            return '';
-    }
-}
-
-function renderSpans(spans: InlineSpan[]): string {
-    if (!spans || !Array.isArray(spans)) return '';
-
-    return spans.map(span => {
-        if (!span) return '';
-        let text = span.text || '';
-
-        if (span.bold) text = `<strong>${text}</strong>`;
-        if (span.italic) text = `<em>${text}</em>`;
-        if (span.code) text = `<code>${text}</code>`;
-        if (span.underline) text = `<u>${text}</u>`;
-        if (span.strike) text = `<s>${text}</s>`;
-        if (span.subscript) text = `<sub>${text}</sub>`;
-        if (span.superscript) text = `<sup>${text}</sup>`;
-        if (span.color) text = `<span style="color: ${span.color}">${text}</span>`;
-
-        if (span.mathInline) text = `$${span.mathInline}$`; // KaTeX auto-render will pick this up
-
-        if (span.link) {
-            text = `<a href="${span.link.url}" target="_blank" title="${span.link.title || ''}">${text}</a>`;
-        }
-
-        return text;
-    }).join('');
-}

@@ -7,10 +7,8 @@ import { AcademicRetrievalTool } from "../tools/academic_scraper";
 import { PerplexitySearchTool } from "../tools/search";
 import fs from "fs-extra";
 import path from "path";
-import { z } from "zod";
-import { Doc, Block, ResourcesBlock } from "../types/content_schema";
-import { repairJsonWithLatex } from "../utils/json_repair";
-import { renderDocToHtml } from "../utils/html_renderer";
+import { AgentResponse } from "../types/content_schema";
+import { renderMarkdownToHtml } from "../utils/html_renderer";
 
 // Define the state
 export const ContentAgentState = Annotation.Root({
@@ -43,11 +41,11 @@ export const ContentAgentState = Annotation.Root({
         reducer: (x, y) => y,
         default: () => 0,
     }),
-    sections_content: Annotation<any[]>({ // Array of generated section content objects
-        reducer: (x, y) => y, // Overwrite
+    sections_content: Annotation<string[]>({ // Array of generated markdown strings
+        reducer: (x, y) => x.concat(y), // Append
         default: () => [],
     }),
-    final_json: Annotation<any>({
+    final_json: Annotation<AgentResponse | {}>({
         reducer: (x, y) => y,
         default: () => ({}),
     }),
@@ -235,7 +233,9 @@ export class ContentCreatorAgent {
         try {
             const content = (response as any).content;
             // Clean markdown code blocks if present
-            plan = repairJsonWithLatex(content);
+            // We still use JSON for the outline plan itself
+            const jsonContent = content.replace(/```json/g, "").replace(/```/g, "").trim();
+            plan = JSON.parse(jsonContent);
         } catch (e) {
             console.error("Failed to parse outline JSON", e);
             // Fallback plan
@@ -264,141 +264,65 @@ export class ContentCreatorAgent {
             
             Context: ${section.description}
             
-            Output a JSON array of BLOCKS representing the content.
+            Output a single **Markdown** document for this section.
             
-            ### SCHEMA DEFINITION
+            ### MARKDOWN DIALECT & EXTENSIONS
             
-            type Block = 
-              | HeadingBlock | ParagraphBlock | ListBlock | CalloutBlock | EquationBlock | CodeBlock | ImageBlock | TableBlock | DividerBlock
+            1. **Core Markdown**:
+               - Use headers: \`#\`, \`##\`, \`###\`
+               - Lists: \`-\` or \`1.\`
+               - Tables: GFM syntax
+               - Bold/Italic: \`**bold**\`, \`*italic*\`
             
-            interface BaseBlock { id: string; type: string; }
+            2. **Math**:
+               - Inline: \`$E = mc^2$\`
+               - Block:
+                 $$
+                 \\int_0^\\infty x^2 dx
+                 $$
             
-            interface HeadingBlock extends BaseBlock { type: "heading"; level: 1|2|3|4; content: InlineSpan[]; }
-            interface ParagraphBlock extends BaseBlock { type: "paragraph"; content: InlineSpan[]; }
+            3. **Callouts**:
+               Use this syntax for special blocks:
+               :::info Title
+               Content...
+               :::
+               
+               Variants: \`info\`, \`warning\`, \`note\`, \`tip\`.
             
-            interface ListBlock extends BaseBlock { type: "list"; style: "ordered"|"bullet"; items: ListItem[]; }
-            interface ListItem { content: InlineSpan[]; children?: ListItem[]; }
-            
-            interface CalloutBlock extends BaseBlock { 
-                type: "callout"; 
-                variant: "example"|"note"|"warning"|"info"; 
-                title?: InlineSpan[]; 
-                icon?: string; 
-                content: InlineSpan[]; 
-            }
-            
-            interface EquationBlock extends BaseBlock { type: "equation"; math: string; display?: "block"|"inline"; }
-            interface CodeBlock extends BaseBlock { type: "code"; language?: string; code: string; }
-            
-            interface InlineSpan {
-                text: string;
-                bold?: boolean;
-                italic?: boolean;
-                underline?: boolean;
-                strike?: boolean;
-                code?: boolean;
-                subscript?: boolean;
-                superscript?: boolean;
-                color?: string;
-                link?: { url: string; title?: string; };
-                mathInline?: string;
-            }
-
-            ### CRITICAL JSON FORMATTING RULES
-            ⚠️ ABSOLUTELY NO COMMENTS, NO EXPLANATIONS, NO MARKDOWN CODE BLOCKS ⚠️
-            - Output ONLY pure, valid JSON array starting with '[' and ending with ']'
-            - NO comments (no //, no /* */, no *//, no explanations before/after)
-            - NO markdown code fences - do not wrap output in code blocks
-            - NO text before or after the JSON array
-            - The response must be parseable by JSON.parse() directly
-            
-            ### CONTENT RULES
-            1. Content must be EXTENSIVE (2000+ words equivalent).
-            2. Use "equation" blocks for main formulas. Use "mathInline" span for inline math.
-            3. STRICTLY ESCAPE LATEX BACKSLASHES in JSON strings. 
-               Example: "\\lambda" must be written as "\\\\lambda". 
-               Example: "\\frac{a}{b}" must be written as "\\\\frac{a}{b}".
-            4. Do not use markdown for bold/italic. Use the Span object properties.
-            5. Every block MUST have an "id" field (use unique IDs like "b1", "b2", etc.)
-            
-            ### EXAMPLE OUTPUT
-            [
-                {
-                    "id": "b1",
-                    "type": "heading",
-                    "level": 2,
-                    "content": [{ "text": "The Inherent Challenge" }]
-                },
-                {
-                    "id": "b2",
-                    "type": "paragraph",
-                    "content": [
-                        { "text": "Antenna Size Requirements: ", "bold": true },
-                        { "text": "for efficient radiation, antenna length must be a fraction of the wavelength ", "italic": true },
-                        { "text": "λ = c / f", "mathInline": "\\\\lambda = \\\\frac{c}{f}" }
-                    ]
-                },
-                {
-                    "id": "b3",
-                    "type": "equation",
-                    "math": "\\\\lambda = \\\\frac{c}{f}",
-                    "display": "block"
-                }
-            ]
+            4. **Graph/Visual Blocks**:
+               If you need to visualize something, use a fenced code block with a specific language:
+               
+               - **Plotly** (for charts):
+                 \`\`\`plotly
+                 { "data": [...], "layout": {...} }
+                 \`\`\`
+               
+               - **Desmos** (for function graphs):
+                 \`\`\`desmos
+                 { "expression": "y=x^2", "bounds": {...} }
+                 \`\`\`
+                 
+               - **tldraw** (for diagrams):
+                 \`\`\`tldraw
+                 { "document": ... }
+                 \`\`\`
+                 
+            ### RULES
+            - Do NOT wrap the entire output in a markdown block. Just return the markdown text.
+            - Content must be EXTENSIVE and detailed.
+            - Use proper LaTeX for all math.
             `),
             new MessagesPlaceholder("messages")
         ]);
 
-        // Use lower temperature model for structured JSON output
-        const chain = prompt.pipe(this.llmStructured);
+        // Use standard model for text generation
+        const chain = prompt.pipe(this.llm);
         const response = await chain.invoke({ messages: state.messages });
 
-        let sectionBlocks: Block[] = [];
-        try {
-            const content = (response as any).content;
-            const parsed = repairJsonWithLatex(content);
-
-            // Ensure we got an array
-            if (!Array.isArray(parsed)) {
-                throw new Error("Parsed JSON is not an array");
-            }
-
-            // Validate blocks have required fields and add IDs if missing
-            sectionBlocks = parsed.map((block: any, idx: number) => {
-                if (!block || typeof block !== 'object' || !block.type) {
-                    console.warn("Skipping invalid block:", block);
-                    return null;
-                }
-                // Ensure block has an ID
-                if (!block.id) {
-                    block.id = `block-${Date.now()}-${idx}`;
-                }
-                return block;
-            }).filter((block: any) => block !== null);
-
-            if (sectionBlocks.length === 0) {
-                throw new Error("No valid blocks found in parsed JSON");
-            }
-        } catch (e: any) {
-            console.error(`Failed to parse section JSON for ${section.title}:`, e.message);
-            // Fallback to a simple paragraph block with the raw content
-            const rawContent = (response as any).content;
-            // Try to extract some text from the raw content if it's not valid JSON
-            const textContent = rawContent.length > 5000
-                ? rawContent.substring(0, 5000) + "... (truncated due to parsing error)"
-                : rawContent;
-
-            sectionBlocks = [
-                {
-                    id: `error-fallback-${Date.now()}`,
-                    type: "paragraph",
-                    content: [{ text: `[Content generation error for "${section.title}"]\n\n${textContent}` }]
-                } as any
-            ];
-        }
+        const content = (response as any).content as string;
 
         return {
-            sections_content: [...state.sections_content, ...sectionBlocks] // Append new blocks
+            sections_content: [content] // Append new markdown string
         };
     }
 
@@ -431,17 +355,14 @@ export class ContentCreatorAgent {
             console.error("Resource search failed", e);
         }
 
-        const resourcesBlock: ResourcesBlock = {
-            id: `res-${Date.now()}`,
-            type: "resources",
-            items: resources
-        };
-
-        // Append resources block to the end of the content
-        const updatedSections = [...allSections, resourcesBlock];
+        const resourcesBlock = `
+:::resources
+${resources.map(r => `- [${r.kind}] [${r.title}](${r.url})`).join('\n')}
+:::
+`;
 
         return {
-            sections_content: updatedSections,
+            sections_content: [resourcesBlock], // Append resources markdown
             current_section_index: index + 1
         };
     }
@@ -455,22 +376,24 @@ export class ContentCreatorAgent {
 
     private async compileJson(state: typeof ContentAgentState.State) {
         const subtopicData = state.current_subtopic_data;
-        const doc: Doc = {
+        const fullMarkdown = state.sections_content.join("\n\n");
+
+        const response: AgentResponse = {
             id: state.current_subtopic_id,
             title: subtopicData.TopicName,
-            meta: {
-                topic: subtopicData.TopicName,
-                createdAt: new Date().toISOString()
-            },
-            blocks: state.sections_content
+            createdAt: new Date().toISOString(),
+            markdown: fullMarkdown
         };
-        return { final_json: doc };
+        return { final_json: response };
     }
 
     private async saveContent(state: typeof ContentAgentState.State) {
-        const doc = state.final_json as Doc;
+        const doc = state.final_json as AgentResponse;
         const content = JSON.stringify(doc, null, 2);
-        const html = renderDocToHtml(doc);
+
+        // We need a new renderer for markdown. For now, we'll just save the markdown file.
+        // And a simple HTML preview using a CDN-based script.
+        const html = renderMarkdownToHtml(doc.markdown, doc.title);
 
         const subtopicId = state.current_subtopic_id;
         const safeFolderName = subtopicId.replace(/[^a-z0-9]/gi, '_').toLowerCase();
@@ -478,116 +401,14 @@ export class ContentCreatorAgent {
 
         await fs.ensureDir(outputDir);
         await fs.writeFile(path.join(outputDir, "content.json"), content);
+        await fs.writeFile(path.join(outputDir, "content.md"), doc.markdown);
         await fs.writeFile(path.join(outputDir, "index.html"), html);
 
         console.log(`Content saved to ${outputDir}/content.json`);
+        console.log(`Markdown saved to ${outputDir}/content.md`);
         console.log(`HTML viewer saved to ${outputDir}/index.html`);
 
         return {};
     }
-    private parseSectionContent(text: string, defaultTitle: string): any {
-        const lines = text.split('\n');
-        let title = defaultTitle;
-        const contentBlocks: any[] = [];
 
-        let currentBlock: any = null;
-        let buffer: string[] = [];
-        let capturing = false;
-
-        for (const line of lines) {
-            const trimmed = line.trim();
-
-            if (trimmed.startsWith("SECTION_TITLE:")) {
-                title = trimmed.replace("SECTION_TITLE:", "").trim();
-                continue;
-            }
-
-            if (trimmed.startsWith("TYPE:")) {
-                if (currentBlock) {
-                    // Save previous block
-                    currentBlock.data = buffer.join('\n').trim();
-                    contentBlocks.push(currentBlock);
-                }
-                // Start new block
-                const type = trimmed.replace("TYPE:", "").trim().toLowerCase();
-                currentBlock = { type: type };
-                buffer = [];
-                capturing = false;
-                continue;
-            }
-
-            if (trimmed.startsWith("TITLE:") && currentBlock && currentBlock.type === 'example') {
-                currentBlock.title = trimmed.replace("TITLE:", "").trim();
-                continue;
-            }
-
-            if (trimmed === "CONTENT:") {
-                capturing = true;
-                continue;
-            }
-
-            if (trimmed === "END_CONTENT") {
-                capturing = false;
-                continue;
-            }
-
-            if (capturing) {
-                buffer.push(line);
-            }
-        }
-
-        // Push last block
-        if (currentBlock) {
-            currentBlock.data = buffer.join('\n').trim();
-            contentBlocks.push(currentBlock);
-        }
-
-        // Fallback if parsing failed to find structure
-        if (contentBlocks.length === 0) {
-            return {
-                title: title,
-                content: [{ type: "text", data: text }]
-            };
-        }
-
-        return {
-            title: title,
-            content: contentBlocks
-        };
-    }
-    private parseSecureJson(text: string): any {
-        // Remove markdown code blocks
-        let cleanText = text.replace(/```json/g, "").replace(/```/g, "").trim();
-
-        // Try parsing directly first
-        try {
-            return JSON.parse(cleanText);
-        } catch (e) {
-            // If failed, try to fix common LaTeX escape issues
-            // Replace single backslashes with double backslashes, but be careful not to break already escaped ones?
-            // Actually, it's hard to distinguish. 
-            // Let's try to replace \ with \\ if it's followed by a letter or special char and not another \
-            // This is a heuristic.
-
-            // A better approach for the LLM is to strictly enforce double escaping. 
-            // But if it fails, we can try to sanitize.
-
-            // Regex to find single backslashes that look like LaTeX commands
-            // e.g. \section -> \\section
-            // But JSON.parse expects \\section in the string literal to mean \section in the data.
-            // If the LLM wrote "\section", JSON.parse fails because \s is not a valid escape (unless it is? \s is not, \n is).
-
-            // Let's try to escape all backslashes that are not valid JSON escapes.
-            // Valid JSON escapes: \" \\ \/ \b \f \n \r \t \uXXXX
-
-            // This regex finds backslashes that are NOT followed by " \ / b f n r t u
-            const fixedText = cleanText.replace(/\\([^"\\/bfnrtu])/g, "\\\\$1");
-
-            try {
-                return JSON.parse(fixedText);
-            } catch (e2) {
-                throw e; // Throw original error if fix fails
-            }
-        }
-    }
 }
