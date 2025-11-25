@@ -2,6 +2,7 @@ import inquirer from "inquirer";
 import { RoadmapGeneratorAgent } from "./agents/roadmap_agent";
 import { ContentCreatorAgent } from "./agents/content_agent";
 import { QuizGeneratorAgent } from "./agents/quiz_agent";
+import { FlashcardGeneratorAgent } from "./agents/flashcard_agent";
 import { HumanMessage } from "@langchain/core/messages";
 import fs from "fs-extra";
 import path from "path";
@@ -14,7 +15,7 @@ async function main() {
             type: "list",
             name: "mode",
             message: "What would you like to do?",
-            choices: ["Generate Roadmap", "Create Content from Roadmap", "Generate Quiz"],
+            choices: ["Generate Roadmap", "Create Content from Roadmap", "Generate Quiz", "Generate Flashcards"],
         },
     ]);
 
@@ -22,8 +23,10 @@ async function main() {
         await runRoadmapGenerator();
     } else if (mode === "Create Content from Roadmap") {
         await runContentCreator();
-    } else {
+    } else if (mode === "Generate Quiz") {
         await runQuizGenerator();
+    } else {
+        await runFlashcardGenerator();
     }
 }
 
@@ -222,6 +225,57 @@ async function runQuizGenerator() {
     }
 
     console.log("\nAll quizzes generated successfully!");
+}
+
+async function runFlashcardGenerator() {
+    const agent = new FlashcardGeneratorAgent();
+    const generatedDir = path.join(process.cwd(), "generated_content");
+
+    if (!fs.existsSync(generatedDir)) {
+        console.error("No generated content found. Please run Content Creator first.");
+        return;
+    }
+
+    const subdirs = await fs.readdir(generatedDir);
+    const availableTopics = [];
+
+    for (const subdir of subdirs) {
+        const contentPath = path.join(generatedDir, subdir, "content.json");
+        if (fs.existsSync(contentPath)) {
+            availableTopics.push(subdir);
+        }
+    }
+
+    if (availableTopics.length === 0) {
+        console.error("No valid content found in generated_content directory.");
+        return;
+    }
+
+    const { selectedTopics } = await inquirer.prompt([
+        {
+            type: "checkbox",
+            name: "selectedTopics",
+            message: "Select topics to generate flashcards for:",
+            choices: availableTopics,
+            validate: (answer) => {
+                if (answer.length < 1) {
+                    return "You must choose at least one topic.";
+                }
+                return true;
+            },
+        },
+    ]);
+
+    console.log("\nStarting Flashcard Generator Agent...\n");
+
+    for (const topicId of selectedTopics) {
+        console.log(`\n--- Processing: ${topicId} ---\n`);
+        await agent.graph.invoke({
+            subtopic_id: topicId
+        });
+    }
+
+    console.log("\nAll flashcards generated successfully!");
 }
 
 main().catch(console.error);
