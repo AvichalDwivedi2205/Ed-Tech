@@ -124,23 +124,16 @@ export function renderMarkdownToHtml(markdown: string, title: string): string {
         });
 
         // Custom Pre-processing for Callouts
-        // :::variant Title
-        // Content
-        // :::
         function processCallouts(md) {
             const regex = /:::(\w+)(?:[ \\t]+(.*?))?\\n([\\s\\S]*?)\\n:::/g;
             return md.replace(regex, (match, variant, title, content) => {
                 const titleHtml = title ? \`<div class="callout-title">\${title}</div>\` : '';
-                // Recursively parse markdown in content
                 const contentHtml = marked.parse(content);
                 return \`<div class="callout callout-\${variant}">\${titleHtml}\${contentHtml}</div>\`;
             });
         }
 
         // Custom Pre-processing for Resources
-        // :::resources
-        // - [kind] [Title](url)
-        // :::
         function processResources(md) {
             const regex = /:::resources\\n([\\s\\S]*?)\\n:::/g;
             return md.replace(regex, (match, content) => {
@@ -169,4 +162,5 @@ export function renderMarkdownToHtml(markdown: string, title: string): string {
 </body>
 </html>`;
 }
+
 

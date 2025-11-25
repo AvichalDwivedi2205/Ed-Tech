@@ -289,24 +289,6 @@ export class ContentCreatorAgent {
                
                Variants: \`info\`, \`warning\`, \`note\`, \`tip\`.
             
-            4. **Graph/Visual Blocks**:
-               If you need to visualize something, use a fenced code block with a specific language:
-               
-               - **Plotly** (for charts):
-                 \`\`\`plotly
-                 { "data": [...], "layout": {...} }
-                 \`\`\`
-               
-               - **Desmos** (for function graphs):
-                 \`\`\`desmos
-                 { "expression": "y=x^2", "bounds": {...} }
-                 \`\`\`
-                 
-               - **tldraw** (for diagrams):
-                 \`\`\`tldraw
-                 { "document": ... }
-                 \`\`\`
-                 
             ### RULES
             - Do NOT wrap the entire output in a markdown block. Just return the markdown text.
             - Content must be EXTENSIVE and detailed.
