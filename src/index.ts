@@ -6,6 +6,10 @@ import { FlashcardGeneratorAgent } from "./agents/flashcard_agent";
 import { HumanMessage } from "@langchain/core/messages";
 import fs from "fs-extra";
 import path from "path";
+import { ragIngestCommand } from "./commands/rag_ingest";
+import { ragReindexCommand } from "./commands/rag_reindex";
+import { ContentGenerationSettings } from "./types/content_schema";
+import { getWorkspaceId } from "./utils/convex_client";
 
 async function main() {
     console.log("Welcome to the Roadmap Generator & Content Creator CLI!");
@@ -15,7 +19,15 @@ async function main() {
             type: "list",
             name: "mode",
             message: "What would you like to do?",
-            choices: ["Generate Roadmap", "Create Content from Roadmap", "Generate Quiz", "Generate Flashcards"],
+            choices: [
+                "Generate Roadmap",
+                "Create Content from Roadmap",
+                "Generate Content with RAG",
+                "RAG: Ingest Documents",
+                "RAG: Reindex Documents",
+                "Generate Quiz",
+                "Generate Flashcards",
+            ],
         },
     ]);
 
@@ -23,6 +35,12 @@ async function main() {
         await runRoadmapGenerator();
     } else if (mode === "Create Content from Roadmap") {
         await runContentCreator();
+    } else if (mode === "Generate Content with RAG") {
+        await runContentGeneratorWithRAG();
+    } else if (mode === "RAG: Ingest Documents") {
+        await runRAGIngest();
+    } else if (mode === "RAG: Reindex Documents") {
+        await runRAGReindex();
     } else if (mode === "Generate Quiz") {
         await runQuizGenerator();
     } else {
@@ -173,6 +191,157 @@ async function runContentCreator() {
             console.log("\nStopping content generation.");
             break;
         }
+    }
+}
+
+async function runContentGeneratorWithRAG() {
+    const { prompt } = await inquirer.prompt([
+        {
+            type: "input",
+            name: "prompt",
+            message: "Enter your content generation prompt:",
+        },
+    ]);
+
+    const { ragNamespace } = await inquirer.prompt([
+        {
+            type: "input",
+            name: "ragNamespace",
+            message: "Enter RAG namespace (e.g., 'general', 'brand', 'product'):",
+            default: "general",
+        },
+    ]);
+
+    const { useRag } = await inquirer.prompt([
+        {
+            type: "confirm",
+            name: "useRag",
+            message: "Use RAG context?",
+            default: true,
+        },
+    ]);
+
+    const { useWebSearch } = await inquirer.prompt([
+        {
+            type: "confirm",
+            name: "useWebSearch",
+            message: "Use web search?",
+            default: true,
+        },
+    ]);
+
+    const workspaceId = getWorkspaceId();
+    const settings: ContentGenerationSettings = {
+        useRag,
+        useWebSearch,
+        ragNamespace,
+        workspaceId,
+    };
+
+    const agent = new ContentCreatorAgent(settings);
+
+    console.log("\nStarting Content Generator with RAG...\n");
+    console.log(`Settings: RAG=${useRag}, WebSearch=${useWebSearch}, Namespace=${ragNamespace}\n`);
+
+    // For now, we'll create a simple roadmap-like structure for single prompt generation
+    // In a full implementation, you might want a dedicated single-prompt content generator
+    const mockRoadmap = {
+        single_prompt: {
+            TopicName: prompt,
+            ContentList: { topics: [] },
+        },
+    };
+
+    const result = await agent.graph.invoke({
+        roadmap_json: mockRoadmap,
+        completed_subtopics: [],
+        settings,
+    });
+
+    console.log("\nContent generation completed!");
+}
+
+async function runRAGIngest() {
+    const { folderPath } = await inquirer.prompt([
+        {
+            type: "input",
+            name: "folderPath",
+            message: "Enter folder path to ingest (relative to project root or absolute):",
+            default: "./rag_corpus",
+        },
+    ]);
+
+    const { namespace } = await inquirer.prompt([
+        {
+            type: "input",
+            name: "namespace",
+            message: "Enter namespace (leave empty to derive from folder structure):",
+            default: "",
+        },
+    ]);
+
+    const resolvedPath = path.isAbsolute(folderPath)
+        ? folderPath
+        : path.resolve(process.cwd(), folderPath);
+
+    console.log(`\nIngesting documents from: ${resolvedPath}`);
+    if (namespace) {
+        console.log(`Using namespace: ${namespace}`);
+    }
+
+    try {
+        const report = await ragIngestCommand(resolvedPath, namespace || undefined, false);
+        console.log("\n✓ Ingestion completed successfully!");
+    } catch (error: any) {
+        console.error(`\n✗ Ingestion failed: ${error.message}`);
+    }
+}
+
+async function runRAGReindex() {
+    const { folderPath } = await inquirer.prompt([
+        {
+            type: "input",
+            name: "folderPath",
+            message: "Enter folder path to reindex (relative to project root or absolute):",
+            default: "./rag_corpus",
+        },
+    ]);
+
+    const { namespace } = await inquirer.prompt([
+        {
+            type: "input",
+            name: "namespace",
+            message: "Enter namespace (leave empty to derive from folder structure):",
+            default: "",
+        },
+    ]);
+
+    const { force } = await inquirer.prompt([
+        {
+            type: "confirm",
+            name: "force",
+            message: "Force re-indexing of all files (ignore hash checks)?",
+            default: false,
+        },
+    ]);
+
+    const resolvedPath = path.isAbsolute(folderPath)
+        ? folderPath
+        : path.resolve(process.cwd(), folderPath);
+
+    console.log(`\nReindexing documents from: ${resolvedPath}`);
+    if (namespace) {
+        console.log(`Using namespace: ${namespace}`);
+    }
+    if (force) {
+        console.log("Force mode: re-indexing all files");
+    }
+
+    try {
+        const report = await ragReindexCommand(resolvedPath, namespace || undefined, force);
+        console.log("\n✓ Reindexing completed successfully!");
+    } catch (error: any) {
+        console.error(`\n✗ Reindexing failed: ${error.message}`);
     }
 }
 

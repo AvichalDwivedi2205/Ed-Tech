@@ -7,8 +7,10 @@ import { AcademicRetrievalTool } from "../tools/academic_scraper";
 import { PerplexitySearchTool } from "../tools/search";
 import fs from "fs-extra";
 import path from "path";
-import { AgentResponse } from "../types/content_schema";
+import { AgentResponse, ContentGenerationSettings } from "../types/content_schema";
 import { renderMarkdownToHtml } from "../utils/html_renderer";
+import { RAGService } from "../services/rag_service";
+import { getConvexClient, getWorkspaceId } from "../utils/convex_client";
 
 // Define the state
 export const ContentAgentState = Annotation.Root({
@@ -53,6 +55,18 @@ export const ContentAgentState = Annotation.Root({
         reducer: (x, y) => y,
         default: () => [],
     }),
+    ragContext: Annotation<string>({
+        reducer: (x, y) => y,
+        default: () => "",
+    }),
+    webContext: Annotation<string>({
+        reducer: (x, y) => y,
+        default: () => "",
+    }),
+    settings: Annotation<ContentGenerationSettings | {}>({
+        reducer: (x, y) => y,
+        default: () => ({}),
+    }),
 });
 
 export class ContentCreatorAgent {
@@ -61,14 +75,27 @@ export class ContentCreatorAgent {
     private searchTool: TavilySearchTool;
     private academicTool: AcademicRetrievalTool;
     private perplexityTool: PerplexitySearchTool;
+    private ragService: RAGService | null = null;
     public graph: any;
 
-    constructor() {
+    constructor(settings?: ContentGenerationSettings) {
         this.llm = getModel(0.7);
         this.llmStructured = getModel(0.2); // Lower temperature for structured JSON output
         this.searchTool = new TavilySearchTool();
         this.academicTool = new AcademicRetrievalTool();
         this.perplexityTool = new PerplexitySearchTool();
+        
+        // Initialize RAG service if settings provided
+        if (settings?.useRag) {
+            try {
+                const convexUrl = process.env.CONVEX_URL || "";
+                const workspaceId = settings.workspaceId || getWorkspaceId();
+                this.ragService = new RAGService(convexUrl, workspaceId);
+            } catch (error) {
+                console.warn("Failed to initialize RAG service:", error);
+            }
+        }
+        
         this.graph = this._buildGraph();
     }
 
@@ -177,27 +204,68 @@ export class ContentCreatorAgent {
     private async researchContent(state: typeof ContentAgentState.State) {
         const subtopicData = state.current_subtopic_data;
         const topicName = subtopicData.TopicName;
+        const settings = state.settings as ContentGenerationSettings;
         console.log(`Researching content for: ${topicName}`);
 
-        // We use the existing research logic but maybe fetch more
         const topics = subtopicData.ContentList?.topics || [];
         const query = `${topicName} ${topics.slice(0, 3).join(" ")} tutorial explanation`;
 
-        const [generalRes, academicResources] = await Promise.all([
-            this.searchTool.run(query),
-            this.academicTool.retrieve(topicName)
-        ]);
+        let ragContext = "";
+        let webContext = "";
 
-        let academicContext = "";
-        if (academicResources.length > 0) {
-            academicContext = "=== ACADEMIC RESOURCES ===\n\n";
-            academicResources.forEach((res, idx) => {
-                academicContext += `[${idx + 1}] Title: ${res.title}\nURL: ${res.url}\nSource: ${res.sourceDomain}\nContent: ${res.snippet || res.content}\n\n`;
-            });
+        // RAG retrieval
+        if (settings?.useRag && this.ragService) {
+            try {
+                const ragNamespace = settings.ragNamespace || "general";
+                console.log(`  Retrieving RAG context from namespace: ${ragNamespace}`);
+                const ragResult = await this.ragService.retrieve(query, ragNamespace, 20);
+                ragContext = ragResult.formattedContext;
+                console.log(`  Retrieved ${ragResult.chunks.length} RAG chunks`);
+            } catch (error: any) {
+                console.error(`  RAG retrieval failed: ${error.message}`);
+            }
         }
 
+        // Web search (only if useWebSearch is true)
+        if (settings?.useWebSearch !== false) {
+            // Default behavior: use web search unless explicitly disabled
+            try {
+                const [generalRes, academicResources] = await Promise.all([
+                    this.searchTool.run(query),
+                    this.academicTool.retrieve(topicName)
+                ]);
+
+                let academicContext = "";
+                if (academicResources.length > 0) {
+                    academicContext = "=== ACADEMIC RESOURCES ===\n\n";
+                    academicResources.forEach((res, idx) => {
+                        academicContext += `[${idx + 1}] Title: ${res.title}\nURL: ${res.url}\nSource: ${res.sourceDomain}\nContent: ${res.snippet || res.content}\n\n`;
+                    });
+                }
+
+                webContext = `=== WEB SEARCH RESULTS ===\n\n${generalRes}\n\n${academicContext}`;
+            } catch (error: any) {
+                console.error(`  Web search failed: ${error.message}`);
+            }
+        }
+
+        // Combine contexts
+        const contextParts: string[] = [];
+        if (ragContext) {
+            contextParts.push(ragContext);
+        }
+        if (webContext) {
+            contextParts.push(webContext);
+        }
+
+        const combinedContext = contextParts.length > 0 
+            ? contextParts.join("\n\n")
+            : `Research context for ${topicName}`;
+
         return {
-            messages: [new SystemMessage(`Research results for ${topicName}:\n\n${generalRes}\n\n${academicContext}`)]
+            messages: [new SystemMessage(`Research results for ${topicName}:\n\n${combinedContext}`)],
+            ragContext,
+            webContext,
         };
     }
 
