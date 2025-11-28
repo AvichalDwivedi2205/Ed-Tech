@@ -5,10 +5,9 @@ import { getModel } from "../utils/model";
 import { TavilySearchTool } from "../tools/search";
 import { AcademicRetrievalTool } from "../tools/academic_scraper";
 import { PerplexitySearchTool } from "../tools/search";
-import fs from "fs-extra";
-import path from "path";
+// Removed fs and path imports - no longer needed for Convex integration
 import { AgentResponse, ContentGenerationSettings } from "../types/content_schema";
-import { renderMarkdownToHtml } from "../utils/html_renderer";
+// Removed renderMarkdownToHtml import - no longer needed for Convex integration
 import { RAGService } from "../services/rag_service";
 import { getConvexClient, getWorkspaceId } from "../utils/convex_client";
 
@@ -48,6 +47,10 @@ export const ContentAgentState = Annotation.Root({
         default: () => [],
     }),
     final_json: Annotation<AgentResponse | {}>({
+        reducer: (x, y) => y,
+        default: () => ({}),
+    }),
+    content_result: Annotation<AgentResponse | {}>({
         reducer: (x, y) => y,
         default: () => ({}),
     }),
@@ -138,26 +141,9 @@ export class ContentCreatorAgent {
     private async loadRoadmap(state: typeof ContentAgentState.State) {
         const roadmapJson = state.roadmap_json;
         const keys = Object.keys(roadmapJson);
-        let completed = state.completed_subtopics || [];
+        const completed = state.completed_subtopics || [];
 
-        // Check for existing content on disk to avoid re-generating
-        const generatedDir = path.join(process.cwd(), "generated_content");
-        if (await fs.pathExists(generatedDir)) {
-            for (const key of keys) {
-                const val = roadmapJson[key];
-                if (typeof val === 'object' && val !== null && val.TopicName) {
-                    const safeFolderName = key.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                    const contentPath = path.join(generatedDir, safeFolderName, "content.json");
-
-                    if (await fs.pathExists(contentPath)) {
-                        if (!completed.includes(key)) {
-                            completed = [...completed, key];
-                        }
-                    }
-                }
-            }
-        }
-
+        // Filter out completed subtopics - completed list should be provided externally
         const pendingSubtopics = keys.filter(key => {
             const val = roadmapJson[key];
             return typeof val === 'object' && val !== null && val.TopicName && !completed.includes(key);
@@ -439,26 +425,15 @@ ${resources.map(r => `- [${r.kind}] [${r.title}](${r.url})`).join('\n')}
 
     private async saveContent(state: typeof ContentAgentState.State) {
         const doc = state.final_json as AgentResponse;
-        const content = JSON.stringify(doc, null, 2);
-
-        // We need a new renderer for markdown. For now, we'll just save the markdown file.
-        // And a simple HTML preview using a CDN-based script.
-        const html = renderMarkdownToHtml(doc.markdown, doc.title);
-
-        const subtopicId = state.current_subtopic_id;
-        const safeFolderName = subtopicId.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const outputDir = path.join(process.cwd(), "generated_content", safeFolderName);
-
-        await fs.ensureDir(outputDir);
-        await fs.writeFile(path.join(outputDir, "content.json"), content);
-        await fs.writeFile(path.join(outputDir, "content.md"), doc.markdown);
-        await fs.writeFile(path.join(outputDir, "index.html"), html);
-
-        console.log(`Content saved to ${outputDir}/content.json`);
-        console.log(`Markdown saved to ${outputDir}/content.md`);
-        console.log(`HTML viewer saved to ${outputDir}/index.html`);
-
-        return {};
+        
+        // Return the content data instead of saving to filesystem
+        // The Convex action will handle saving to the database
+        console.log(`Content generated for subtopic: ${doc.id}`);
+        
+        return {
+            // Return the content data for the caller to save
+            content_result: doc
+        };
     }
 
 }

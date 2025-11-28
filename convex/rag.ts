@@ -65,12 +65,29 @@ export const getDocumentByPath = query({
   },
 });
 
+export const getDocumentByStorageId = query({
+  args: {
+    storageId: v.id("_storage"),
+    workspaceId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("documents")
+      .filter((q) => 
+        q.eq(q.field("storageId"), args.storageId)
+        .eq(q.field("workspaceId"), args.workspaceId)
+      )
+      .collect();
+  },
+});
+
 export const insertDocument = mutation({
   args: {
     workspaceId: v.string(),
     ragNamespace: v.string(),
     title: v.string(),
-    sourcePath: v.string(),
+    sourcePath: v.optional(v.string()),
+    storageId: v.optional(v.id("_storage")),
     pageCount: v.number(),
     status: v.union(
       v.literal("pending"),
@@ -83,13 +100,25 @@ export const insertDocument = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
     
-    // Check if document already exists
-    const existing = await ctx.db
-      .query("documents")
-      .withIndex("by_source_path", (q) =>
-        q.eq("sourcePath", args.sourcePath).eq("workspaceId", args.workspaceId)
-      )
-      .first();
+    // Check if document already exists (by sourcePath or storageId)
+    let existing = null;
+    if (args.sourcePath) {
+      existing = await ctx.db
+        .query("documents")
+        .withIndex("by_source_path", (q) =>
+          q.eq("sourcePath", args.sourcePath).eq("workspaceId", args.workspaceId)
+        )
+        .first();
+    } else if (args.storageId) {
+      const docs = await ctx.db
+        .query("documents")
+        .filter((q) => 
+          q.eq(q.field("storageId"), args.storageId)
+          .eq(q.field("workspaceId"), args.workspaceId)
+        )
+        .collect();
+      existing = docs.length > 0 ? docs[0] : null;
+    }
 
     if (existing) {
       // Update existing document
@@ -98,6 +127,7 @@ export const insertDocument = mutation({
         pageCount: args.pageCount,
         status: args.status,
         hash: args.hash,
+        storageId: args.storageId,
         updatedAt: now,
       });
       return existing._id;
@@ -108,6 +138,7 @@ export const insertDocument = mutation({
         ragNamespace: args.ragNamespace,
         title: args.title,
         sourcePath: args.sourcePath,
+        storageId: args.storageId,
         pageCount: args.pageCount,
         createdAt: now,
         updatedAt: now,

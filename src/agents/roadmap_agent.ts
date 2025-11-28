@@ -27,9 +27,9 @@ export const AgentState = Annotation.Root({
         reducer: (x, y) => y,
         default: () => "",
     }),
-    final_roadmap: Annotation<string>({
+    final_roadmap: Annotation<any>({
         reducer: (x, y) => y,
-        default: () => "",
+        default: () => ({}),
     }),
     waiting_for_response: Annotation<boolean>({
         reducer: (x, y) => y,
@@ -298,8 +298,17 @@ export class RoadmapGeneratorAgent {
         // Clean JSON output (remove markdown code blocks)
         content = content.replace(/```json/g, "").replace(/```/g, "").trim();
 
+        // Parse JSON to return structured data
+        let roadmapJson: any;
+        try {
+            roadmapJson = JSON.parse(content);
+        } catch (e) {
+            console.error("Failed to parse roadmap JSON", e);
+            throw new Error("Failed to generate valid roadmap JSON");
+        }
+
         return {
-            final_roadmap: content,
+            final_roadmap: roadmapJson, // Return parsed JSON object instead of string
             messages: [...messages, response]
         };
     }

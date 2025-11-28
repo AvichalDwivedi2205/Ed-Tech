@@ -2,11 +2,9 @@ import { StateGraph, END, Annotation } from "@langchain/langgraph";
 import { SystemMessage, BaseMessage } from "@langchain/core/messages";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { getModel } from "../utils/model";
-import fs from "fs-extra";
-import path from "path";
 import { Flashcard, FlashcardSet } from "../types/flashcard_schema";
 import { repairJsonWithLatex } from "../utils/json_repair";
-import { renderFlashcardsToHtml } from "../utils/flashcard_renderer";
+// Removed fs, path, and renderFlashcardsToHtml imports - no longer needed for Convex integration
 
 // Define the state
 export const FlashcardAgentState = Annotation.Root({
@@ -31,6 +29,10 @@ export const FlashcardAgentState = Annotation.Root({
         default: () => [],
     }),
     final_flashcard_set: Annotation<any>({
+        reducer: (x, y) => y,
+        default: () => ({}),
+    }),
+    flashcard_result: Annotation<any>({
         reducer: (x, y) => y,
         default: () => ({}),
     }),
@@ -62,27 +64,24 @@ export class FlashcardGeneratorAgent {
     }
 
     private async loadContent(state: typeof FlashcardAgentState.State) {
-        const subtopicId = state.subtopic_id;
-        const safeFolderName = subtopicId.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const contentPath = path.join(process.cwd(), "generated_content", safeFolderName, "content.json");
+        // Content should be provided via state instead of loading from filesystem
+        // This method now just validates that content_text is available
+        const contentText = state.content_text;
+        const topicName = state.topic_name;
 
-        if (!fs.existsSync(contentPath)) {
-            throw new Error(`Content not found for subtopic: ${subtopicId}`);
+        if (!contentText || contentText.trim().length === 0) {
+            throw new Error(`Content text is required for subtopic: ${state.subtopic_id}`);
         }
 
-        const contentJson = await fs.readJson(contentPath);
-
-        // Extract text content for the LLM
-        let fullText = contentJson.markdown || "";
-
         // Truncate if too long
+        let fullText = contentText;
         if (fullText.length > 20000) {
             fullText = fullText.substring(0, 20000) + "... (truncated)";
         }
 
         return {
             content_text: fullText,
-            topic_name: contentJson.title || subtopicId
+            topic_name: topicName || state.subtopic_id
         };
     }
 
@@ -137,22 +136,14 @@ export class FlashcardGeneratorAgent {
 
     private async saveFlashcards(state: typeof FlashcardAgentState.State) {
         const set = state.final_flashcard_set as FlashcardSet;
-        const subtopicId = state.subtopic_id;
-        const safeFolderName = subtopicId.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const outputDir = path.join(process.cwd(), "generated_content", safeFolderName);
-
-        await fs.ensureDir(outputDir);
-
-        // Save JSON
-        await fs.writeFile(path.join(outputDir, "flashcards.json"), JSON.stringify(set, null, 2));
-
-        // Render and Save HTML
-        const html = renderFlashcardsToHtml(set);
-        await fs.writeFile(path.join(outputDir, "flashcards.html"), html);
-
-        console.log(`Flashcards saved to ${outputDir}/flashcards.json`);
-        console.log(`Flashcards HTML saved to ${outputDir}/flashcards.html`);
-
-        return {};
+        
+        // Return the flashcard data instead of saving to filesystem
+        // The Convex action will handle saving to the database
+        console.log(`Flashcards generated for subtopic: ${state.subtopic_id}`);
+        
+        return {
+            // Return the flashcard data for the caller to save
+            flashcard_result: set
+        };
     }
 }

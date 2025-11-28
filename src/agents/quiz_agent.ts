@@ -3,11 +3,9 @@ import { SystemMessage, BaseMessage } from "@langchain/core/messages";
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
 import { getModel } from "../utils/model";
 import { TavilySearchTool } from "../tools/search";
-import fs from "fs-extra";
-import path from "path";
 import { Quiz, Question } from "../types/quiz_schema";
 import { repairJsonWithLatex } from "../utils/json_repair";
-import { renderQuizToHtml } from "../utils/quiz_renderer";
+// Removed fs, path, and renderQuizToHtml imports - no longer needed for Convex integration
 
 // Define the state
 export const QuizAgentState = Annotation.Root({
@@ -32,6 +30,10 @@ export const QuizAgentState = Annotation.Root({
         default: () => [],
     }),
     final_quiz: Annotation<any>({
+        reducer: (x, y) => y,
+        default: () => ({}),
+    }),
+    quiz_result: Annotation<any>({
         reducer: (x, y) => y,
         default: () => ({}),
     }),
@@ -69,28 +71,24 @@ export class QuizGeneratorAgent {
     }
 
     private async loadContent(state: typeof QuizAgentState.State) {
-        const subtopicId = state.subtopic_id;
-        const safeFolderName = subtopicId.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const contentPath = path.join(process.cwd(), "generated_content", safeFolderName, "content.json");
+        // Content should be provided via state instead of loading from filesystem
+        // This method now just validates that content_text is available
+        const contentText = state.content_text;
+        const topicName = state.topic_name;
 
-        if (!fs.existsSync(contentPath)) {
-            throw new Error(`Content not found for subtopic: ${subtopicId}`);
+        if (!contentText || contentText.trim().length === 0) {
+            throw new Error(`Content text is required for subtopic: ${state.subtopic_id}`);
         }
 
-        const contentJson = await fs.readJson(contentPath);
-
-        // Extract text content for the LLM
-        // Now we use the markdown string directly
-        let fullText = contentJson.markdown || "";
-
         // Truncate if too long (approx 15k chars to fit context window comfortably with output)
+        let fullText = contentText;
         if (fullText.length > 20000) {
             fullText = fullText.substring(0, 20000) + "... (truncated)";
         }
 
         return {
             content_text: fullText,
-            topic_name: contentJson.title || subtopicId
+            topic_name: topicName || state.subtopic_id
         };
     }
 
@@ -198,22 +196,14 @@ export class QuizGeneratorAgent {
 
     private async saveQuiz(state: typeof QuizAgentState.State) {
         const quiz = state.final_quiz as Quiz;
-        const subtopicId = state.subtopic_id;
-        const safeFolderName = subtopicId.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const outputDir = path.join(process.cwd(), "generated_content", safeFolderName);
-
-        await fs.ensureDir(outputDir);
-
-        // Save JSON
-        await fs.writeFile(path.join(outputDir, "quiz.json"), JSON.stringify(quiz, null, 2));
-
-        // Render and Save HTML
-        const html = renderQuizToHtml(quiz);
-        await fs.writeFile(path.join(outputDir, "quiz.html"), html);
-
-        console.log(`Quiz saved to ${outputDir}/quiz.json`);
-        console.log(`Quiz HTML saved to ${outputDir}/quiz.html`);
-
-        return {};
+        
+        // Return the quiz data instead of saving to filesystem
+        // The Convex action will handle saving to the database
+        console.log(`Quiz generated for subtopic: ${state.subtopic_id}`);
+        
+        return {
+            // Return the quiz data for the caller to save
+            quiz_result: quiz
+        };
     }
 }

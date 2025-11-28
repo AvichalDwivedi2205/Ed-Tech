@@ -248,5 +248,194 @@ export class DocumentProcessor {
     const ext = path.extname(filePath).toLowerCase();
     return DocumentProcessor.getSupportedExtensions().includes(ext);
   }
+
+  /**
+   * Count pages from buffer (for Convex Storage integration)
+   */
+  async countPagesFromBuffer(buffer: Buffer, fileType: string): Promise<number> {
+    switch (fileType.toLowerCase()) {
+      case ".pdf":
+        return await this.countPdfPagesFromBuffer(buffer);
+      case ".docx":
+        return await this.countDocxPagesFromBuffer(buffer);
+      case ".txt":
+      case ".md":
+        return 1; // Treated as single page
+      default:
+        throw new Error(`Unsupported file type: ${fileType}`);
+    }
+  }
+
+  /**
+   * Extract text from buffer (for Convex Storage integration)
+   */
+  async extractTextFromBuffer(buffer: Buffer, fileType: string): Promise<ExtractedDocument> {
+    switch (fileType.toLowerCase()) {
+      case ".pdf":
+        return await this.extractPdfTextFromBuffer(buffer);
+      case ".docx":
+        return await this.extractDocxTextFromBuffer(buffer);
+      case ".txt":
+        return await this.extractTextFromBufferString(buffer);
+      case ".md":
+        return await this.extractMarkdownFromBufferString(buffer);
+      default:
+        throw new Error(`Unsupported file type: ${fileType}`);
+    }
+  }
+
+  private async countPdfPagesFromBuffer(buffer: Buffer): Promise<number> {
+    try {
+      const pdfData = await pdfParse(buffer);
+      return pdfData.numpages;
+    } catch (error: any) {
+      throw new Error(`Failed to count PDF pages: ${error.message}`);
+    }
+  }
+
+  private async countDocxPagesFromBuffer(buffer: Buffer): Promise<number> {
+    try {
+      // DOCX doesn't have a reliable page count without rendering
+      // We'll estimate based on character count: ~2000 chars per page
+      const result = await mammoth.extractRawText({ buffer });
+      const charCount = result.value.length;
+      return Math.max(1, Math.ceil(charCount / 2000));
+    } catch (error: any) {
+      throw new Error(`Failed to count DOCX pages: ${error.message}`);
+    }
+  }
+
+  private async extractPdfTextFromBuffer(buffer: Buffer): Promise<ExtractedDocument> {
+    try {
+      const pdfData = await pdfParse(buffer);
+
+      // Check if PDF has extractable text
+      const hasText = pdfData.text && pdfData.text.trim().length > 0;
+
+      if (hasText) {
+        // Text-based PDF: split by pages
+        const pages: Page[] = [];
+        const fullText = pdfData.text;
+        const estimatedCharsPerPage = fullText.length / pdfData.numpages;
+        
+        for (let i = 0; i < pdfData.numpages; i++) {
+          const start = Math.floor(i * estimatedCharsPerPage);
+          const end = Math.floor((i + 1) * estimatedCharsPerPage);
+          const pageText = fullText.slice(start, end).trim();
+          
+          pages.push({
+            pageNumber: i + 1,
+            text: pageText,
+            requiresOcr: false,
+          });
+        }
+
+        return {
+          text: fullText,
+          pages,
+          pageCount: pdfData.numpages,
+        };
+      } else {
+        // Scanned PDF: OCR would be needed but OCRTool currently requires file path
+        // For now, we'll return empty text and mark pages as requiring OCR
+        // TODO: Update OCRTool to support buffers or implement temporary file handling
+        console.warn("PDF appears to be scanned. OCR from buffer not yet implemented.");
+        const pages: Page[] = [];
+        for (let i = 0; i < pdfData.numpages; i++) {
+          pages.push({
+            pageNumber: i + 1,
+            text: "", // Empty text - would need OCR
+            requiresOcr: true,
+          });
+        }
+
+        return {
+          text: "",
+          pages,
+          pageCount: pdfData.numpages,
+        };
+      }
+    } catch (error: any) {
+      throw new Error(`Failed to extract PDF text: ${error.message}`);
+    }
+  }
+
+  private async extractDocxTextFromBuffer(buffer: Buffer): Promise<ExtractedDocument> {
+    try {
+      const result = await mammoth.extractRawText({ buffer });
+      const text = result.value;
+      
+      // Estimate pages based on character count
+      const estimatedPageCount = Math.max(1, Math.ceil(text.length / 2000));
+      
+      // Split into paragraphs and assign to synthetic pages
+      const paragraphs = text.split(/\n\s*\n/).filter((p) => p.trim().length > 0);
+      const paragraphsPerPage = Math.max(1, Math.ceil(paragraphs.length / estimatedPageCount));
+      
+      const pages: Page[] = [];
+      for (let i = 0; i < estimatedPageCount; i++) {
+        const start = i * paragraphsPerPage;
+        const end = Math.min((i + 1) * paragraphsPerPage, paragraphs.length);
+        const pageText = paragraphs.slice(start, end).join("\n\n").trim();
+
+        pages.push({
+          pageNumber: i + 1,
+          text: pageText,
+          requiresOcr: false,
+        });
+      }
+
+      return {
+        text,
+        pages,
+        pageCount: estimatedPageCount,
+      };
+    } catch (error: any) {
+      throw new Error(`Failed to extract DOCX text: ${error.message}`);
+    }
+  }
+
+  private async extractTextFromBufferString(buffer: Buffer): Promise<ExtractedDocument> {
+    try {
+      const text = buffer.toString("utf-8");
+      const pages: Page[] = [
+        {
+          pageNumber: 1,
+          text,
+          requiresOcr: false,
+        },
+      ];
+
+      return {
+        text,
+        pages,
+        pageCount: 1,
+      };
+    } catch (error: any) {
+      throw new Error(`Failed to extract text from buffer: ${error.message}`);
+    }
+  }
+
+  private async extractMarkdownFromBufferString(buffer: Buffer): Promise<ExtractedDocument> {
+    try {
+      const text = buffer.toString("utf-8");
+      
+      const pages: Page[] = [
+        {
+          pageNumber: 1,
+          text,
+          requiresOcr: false,
+        },
+      ];
+
+      return {
+        text,
+        pages,
+        pageCount: 1,
+      };
+    } catch (error: any) {
+      throw new Error(`Failed to extract markdown from buffer: ${error.message}`);
+    }
+  }
 }
 
