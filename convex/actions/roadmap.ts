@@ -41,13 +41,15 @@ export const generate = action({
     }
 
     // Run agent
+    // Skip clarification by setting clarification_count to 1
+    // This allows direct roadmap generation from user input
     const initialState = {
       user_input: args.userInput,
       ocr_text: ocrText,
       file_path: "", // Not used when using storage
       messages: [],
-      clarification_count: 0,
-      roadmap_context: "",
+      clarification_count: 1, // Set to 1 to skip clarification step
+      roadmap_context: ocrText || "", // Use OCR text if available
       final_roadmap: {},
       waiting_for_response: false,
     };
