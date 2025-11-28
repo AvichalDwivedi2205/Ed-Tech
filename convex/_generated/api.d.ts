@@ -8,6 +8,13 @@
  * @module
  */
 
+import type * as mutations_content from "../mutations/content.js";
+import type * as mutations_flashcards from "../mutations/flashcards.js";
+import type * as mutations_quizzes from "../mutations/quizzes.js";
+import type * as mutations_roadmaps from "../mutations/roadmaps.js";
+import type * as mutations_storage from "../mutations/storage.js";
+import type * as mutations_workspaces from "../mutations/workspaces.js";
+import type * as queries_workspaces from "../queries/workspaces.js";
 import type * as rag from "../rag.js";
 
 import type {
@@ -17,6 +24,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "mutations/content": typeof mutations_content;
+  "mutations/flashcards": typeof mutations_flashcards;
+  "mutations/quizzes": typeof mutations_quizzes;
+  "mutations/roadmaps": typeof mutations_roadmaps;
+  "mutations/storage": typeof mutations_storage;
+  "mutations/workspaces": typeof mutations_workspaces;
+  "queries/workspaces": typeof queries_workspaces;
   rag: typeof rag;
 }>;
 
