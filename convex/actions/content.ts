@@ -41,11 +41,12 @@ export const generate = action({
     }
 
     // Build settings
+    // Convert Id<"workspaces"> to string for ContentGenerationSettings
     const settings: ContentGenerationSettings = {
       useRag: args.settings?.useRag ?? false,
       useWebSearch: args.settings?.useWebSearch ?? true,
       ragNamespace: args.settings?.ragNamespace || "general",
-      workspaceId: args.workspaceId,
+      workspaceId: args.workspaceId as string,
     };
 
     // Initialize agent with settings

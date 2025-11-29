@@ -15,6 +15,8 @@ export const getModel = (temperature: number = 0.7) => {
         temperature: temperature,
         configuration: {
             baseURL: "https://openrouter.ai/api/v1",
+            timeout: 60000, // 60 second timeout
         },
+        maxRetries: 3,
     });
 };
