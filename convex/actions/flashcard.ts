@@ -13,7 +13,7 @@ export const generate = action({
     contentText: v.optional(v.string()), // Optional: can provide content markdown directly
     topicName: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ flashcardId: string; flashcardSet: any }> => {
     // Get content if contentId provided
     let contentText = args.contentText;
     let topicName = args.topicName;
@@ -57,7 +57,7 @@ export const generate = action({
     }
 
     // Save to database via mutation
-    const flashcardId = await ctx.runMutation(api.mutations.flashcards.saveFlashcards, {
+    const flashcardId: string = await ctx.runMutation(api.mutations.flashcards.saveFlashcards, {
       workspaceId: args.workspaceId,
       subtopicId: args.subtopicId,
       flashcardData: flashcardSet,

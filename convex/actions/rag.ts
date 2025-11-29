@@ -10,7 +10,7 @@ import crypto from "crypto";
 
 export const ingestFromStorage = action({
   args: {
-    workspaceId: v.string(),
+    workspaceId: v.id("workspaces"),
     storageId: v.id("_storage"),
     ragNamespace: v.string(),
     title: v.string(),
@@ -111,7 +111,8 @@ export const ingestFromStorage = action({
 
     // Prepare chunks for insertion
     const chunksData = chunks.map((chunk, index) => ({
-      docId: String(docId),
+      docId: docId,
+      workspaceId: args.workspaceId,
       ragNamespace: args.ragNamespace,
       chunkIndex: chunk.chunkIndex,
       pageStart: chunk.pageStart,

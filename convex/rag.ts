@@ -6,7 +6,7 @@ export const searchChunks = query({
   args: {
     queryEmbedding: v.array(v.number()),
     ragNamespace: v.string(),
-    workspaceId: v.string(),
+    workspaceId: v.id("workspaces"),
     k: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -53,7 +53,7 @@ export const searchChunks = query({
 export const getDocumentByPath = query({
   args: {
     sourcePath: v.string(),
-    workspaceId: v.string(),
+    workspaceId: v.id("workspaces"),
   },
   handler: async (ctx, args) => {
     return await ctx.db
@@ -68,14 +68,16 @@ export const getDocumentByPath = query({
 export const getDocumentByStorageId = query({
   args: {
     storageId: v.id("_storage"),
-    workspaceId: v.string(),
+    workspaceId: v.id("workspaces"),
   },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("documents")
       .filter((q) => 
-        q.eq(q.field("storageId"), args.storageId)
-        .eq(q.field("workspaceId"), args.workspaceId)
+        q.and(
+          q.eq(q.field("storageId"), args.storageId),
+          q.eq(q.field("workspaceId"), args.workspaceId)
+        )
       )
       .collect();
   },
@@ -83,7 +85,7 @@ export const getDocumentByStorageId = query({
 
 export const insertDocument = mutation({
   args: {
-    workspaceId: v.string(),
+    workspaceId: v.id("workspaces"),
     ragNamespace: v.string(),
     title: v.string(),
     sourcePath: v.optional(v.string()),
@@ -113,8 +115,10 @@ export const insertDocument = mutation({
       const docs = await ctx.db
         .query("documents")
         .filter((q) => 
-          q.eq(q.field("storageId"), args.storageId)
-          .eq(q.field("workspaceId"), args.workspaceId)
+          q.and(
+            q.eq(q.field("storageId"), args.storageId),
+            q.eq(q.field("workspaceId"), args.workspaceId)
+          )
         )
         .collect();
       existing = docs.length > 0 ? docs[0] : null;
@@ -154,7 +158,7 @@ export const insertChunks = mutation({
     chunks: v.array(
       v.object({
         docId: v.id("documents"),
-        workspaceId: v.string(),
+        workspaceId: v.id("workspaces"),
         ragNamespace: v.string(),
         chunkIndex: v.number(),
         pageStart: v.number(),
