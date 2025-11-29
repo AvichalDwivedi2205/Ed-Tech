@@ -1,13 +1,29 @@
+// convex/schema.ts
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  workspaces: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    userId: v.optional(v.string()),   // legacy / optional
+    ownerId: v.optional(v.string()),
+    members: v.optional(v.array(v.object({
+      userId: v.string(),
+      role: v.string(),
+      addedAt: v.number(),
+    }))),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"]),
+
   documents: defineTable({
-    workspaceId: v.string(),
+    workspaceId: v.id("workspaces"),
     ragNamespace: v.string(),
     title: v.string(),
-    sourcePath: v.optional(v.string()), // Made optional to support transition or external links
-    storageId: v.optional(v.id("_storage")), // Added storageId
+    sourcePath: v.optional(v.string()),
+    storageId: v.optional(v.id("_storage")),
     pageCount: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -22,11 +38,11 @@ export default defineSchema({
     .index("by_workspace_namespace", ["workspaceId", "ragNamespace"])
     .index("by_source_path", ["sourcePath", "workspaceId"])
     .index("by_hash", ["hash", "workspaceId"])
-    .index("by_workspace", ["workspaceId"]), // Added by_workspace index
+    .index("by_workspace", ["workspaceId"]),
 
   chunks: defineTable({
     docId: v.id("documents"),
-    workspaceId: v.string(),
+    workspaceId: v.id("workspaces"),
     ragNamespace: v.string(),
     chunkIndex: v.number(),
     pageStart: v.number(),
@@ -43,42 +59,27 @@ export default defineSchema({
       filterFields: ["workspaceId", "ragNamespace"],
     }),
 
-  workspaces: defineTable({
-    name: v.string(),
-    description: v.optional(v.string()),
-    userId: v.optional(v.string()), // Optional for future auth (legacy)
-    ownerId: v.optional(v.string()), // Owner ID field
-    members: v.optional(v.array(v.object({
-      userId: v.string(),
-      role: v.string(),
-      addedAt: v.number(),
-    }))), // Members array for multi-user workspaces
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  }).index("by_userId", ["userId"]),
-
   roadmaps: defineTable({
     workspaceId: v.id("workspaces"),
-    roadmapData: v.optional(v.any()), // JSON data (new format)
-    roadmapJson: v.optional(v.any()), // Legacy field name, kept for backward compatibility
+    roadmapData: v.optional(v.any()),
+    roadmapJson: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
-    // Legacy fields for backward compatibility
     createdBy: v.optional(v.string()),
     status: v.optional(v.string()),
     teachingStyle: v.optional(v.string()),
     title: v.optional(v.string()),
-  }).index("by_workspace", ["workspaceId"]),
+  })
+    .index("by_workspace", ["workspaceId"]),
 
   content: defineTable({
     workspaceId: v.id("workspaces"),
     subtopicId: v.string(),
-    markdown: v.optional(v.string()), // Made optional for backward compatibility
-    content: v.optional(v.string()), // Legacy field name, kept for backward compatibility
-    jsonData: v.optional(v.any()), // Made optional as it may not always be needed
+    markdown: v.optional(v.string()),
+    content: v.optional(v.string()),
+    jsonData: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
-    // Legacy fields for backward compatibility
     graphs: v.optional(v.array(v.any())),
     quiz: v.optional(v.array(v.any())),
     roadmapId: v.optional(v.string()),
@@ -91,7 +92,7 @@ export default defineSchema({
   quizzes: defineTable({
     workspaceId: v.id("workspaces"),
     subtopicId: v.string(),
-    quizData: v.any(), // JSON
+    quizData: v.any(),
     createdAt: v.number(),
   })
     .index("by_workspace", ["workspaceId"])
@@ -100,10 +101,9 @@ export default defineSchema({
   flashcards: defineTable({
     workspaceId: v.id("workspaces"),
     subtopicId: v.string(),
-    flashcardData: v.any(), // JSON
+    flashcardData: v.any(),
     createdAt: v.number(),
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_subtopic", ["workspaceId", "subtopicId"]),
 });
-
