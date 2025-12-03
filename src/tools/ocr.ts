@@ -25,10 +25,14 @@ export class OCRTool {
 
         const mimeType = this.getMimeType(filePath);
         const fileData = await fs.readFile(filePath);
+        return this.runFromBuffer(fileData, mimeType);
+    }
+
+    async runFromBuffer(buffer: Buffer, mimeType: string): Promise<string> {
         const imageParts = [
             {
                 inlineData: {
-                    data: fileData.toString("base64"),
+                    data: buffer.toString("base64"),
                     mimeType: mimeType,
                 },
             },
@@ -48,7 +52,11 @@ export class OCRTool {
 
     private getMimeType(filePath: string): string {
         const ext = path.extname(filePath).toLowerCase();
-        switch (ext) {
+        return this.getMimeTypeFromExtension(ext);
+    }
+
+    getMimeTypeFromExtension(ext: string): string {
+        switch (ext.toLowerCase()) {
             case ".png":
                 return "image/png";
             case ".jpg":

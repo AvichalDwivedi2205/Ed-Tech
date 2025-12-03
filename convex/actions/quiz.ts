@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { action } from "../_generated/server";
 import { QuizGeneratorAgent } from "../../src/agents/quiz_agent";
 import { api } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 
 export const generate = action({
   args: {
@@ -13,7 +14,10 @@ export const generate = action({
     contentText: v.optional(v.string()), // Optional: can provide content markdown directly
     topicName: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{
+    quizId: Id<"quizzes">;
+    quiz: any;
+  }> => {
     // Get content if contentId provided
     let contentText = args.contentText;
     let topicName = args.topicName;
@@ -57,7 +61,7 @@ export const generate = action({
     }
 
     // Save to database via mutation
-    const quizId = await ctx.runMutation(api.mutations.quizzes.saveQuiz, {
+    const quizId: Id<"quizzes"> = await ctx.runMutation(api.mutations.quizzes.saveQuiz, {
       workspaceId: args.workspaceId,
       subtopicId: args.subtopicId,
       quizData: quiz,

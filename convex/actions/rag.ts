@@ -6,6 +6,7 @@ import { DocumentProcessor } from "../../src/tools/document_processor";
 import { GeminiEmbeddingService } from "../../src/tools/embedding";
 import { chunkText } from "../../src/utils/chunking";
 import { api } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import crypto from "crypto";
 
 export const ingestFromStorage = action({
@@ -16,7 +17,13 @@ export const ingestFromStorage = action({
     title: v.string(),
     force: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{
+    documentId: Id<"documents">;
+    status: string;
+    message?: string;
+    chunksCount?: number;
+    pageCount?: number;
+  }> => {
     // Get file from Convex Storage
     const file = await ctx.storage.get(args.storageId);
     if (!file) {
@@ -38,13 +45,13 @@ export const ingestFromStorage = action({
 
     // Check if already indexed
     if (!args.force) {
-      const existingDocs = await ctx.runQuery(api.rag.getDocumentByStorageId, {
+      const existingDocs: any[] = await ctx.runQuery(api.rag.getDocumentByStorageId, {
         storageId: args.storageId,
         workspaceId: args.workspaceId,
       });
       
       if (existingDocs && existingDocs.length > 0) {
-        const existing = existingDocs[0];
+        const existing: any = existingDocs[0];
         if (existing.hash === hash && existing.status === "indexed") {
           return {
             documentId: existing._id,
@@ -69,7 +76,7 @@ export const ingestFromStorage = action({
 
     // Check page limit
     if (pageCount > 200) {
-      const docId = await ctx.runMutation(api.rag.insertDocument, {
+      const docId: Id<"documents"> = await ctx.runMutation(api.rag.insertDocument, {
         workspaceId: args.workspaceId,
         ragNamespace: args.ragNamespace,
         title: fileName,
@@ -98,7 +105,7 @@ export const ingestFromStorage = action({
     const embeddings = await embeddingService.generateEmbeddings(chunkTexts);
 
     // Insert document
-    const docId = await ctx.runMutation(api.rag.insertDocument, {
+    const docId: Id<"documents"> = await ctx.runMutation(api.rag.insertDocument, {
       workspaceId: args.workspaceId,
       ragNamespace: args.ragNamespace,
       title: fileName,

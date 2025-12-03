@@ -1,5 +1,6 @@
 import { ConvexHttpClient } from "convex/browser";
 import { GeminiEmbeddingService } from "../tools/embedding";
+import type { Id } from "../../convex/_generated/dataModel";
 
 export interface RAGChunk {
   id: string;
@@ -45,7 +46,7 @@ export class RAGService {
     const results = await this.convexClient.query(api.rag.searchChunks, {
       queryEmbedding,
       ragNamespace,
-      workspaceId: this.workspaceId,
+      workspaceId: this.workspaceId as Id<"workspaces">,
       k,
     });
 
@@ -132,7 +133,7 @@ export class RAGService {
     const { api } = await import("../../convex/_generated/api");
     return await this.convexClient.query(api.rag.getDocumentByPath, {
       sourcePath,
-      workspaceId: this.workspaceId,
+      workspaceId: this.workspaceId as Id<"workspaces">,
     });
   }
 
@@ -149,7 +150,7 @@ export class RAGService {
   }) {
     const { api } = await import("../../convex/_generated/api");
     return await this.convexClient.mutation(api.rag.insertDocument, {
-      workspaceId: this.workspaceId,
+      workspaceId: this.workspaceId as Id<"workspaces">,
       ...docData,
     });
   }
@@ -172,8 +173,8 @@ export class RAGService {
     return await this.convexClient.mutation(api.rag.insertChunks, {
       chunks: chunksData.map((chunk) => ({
         ...chunk,
-        docId: chunk.docId as any, // Convex will validate the ID type
-        workspaceId: this.workspaceId,
+        docId: chunk.docId as Id<"documents">,
+        workspaceId: this.workspaceId as Id<"workspaces">,
         metadata: chunk.metadata || {},
       })),
     });

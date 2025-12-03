@@ -27,6 +27,7 @@ export const updateGeneration = mutation({
     clarificationCount: v.optional(v.number()),
     waitingForResponse: v.optional(v.boolean()),
     roadmapContext: v.optional(v.string()),
+    ocrText: v.optional(v.string()),
     status: v.optional(v.union(
       v.literal("clarifying"),
       v.literal("generating"),

@@ -252,6 +252,7 @@ export class RoadmapGeneratorAgent {
         You are to **Very Very Strictly** follow the structure provided below:
         Structure:
         {
+          "title": "string - A concise, descriptive title for this learning roadmap (e.g., 'Machine Learning Fundamentals Roadmap' or 'Communication Systems Course Roadmap')",
           "TeachingStyle": "string",
           "Subtopic1": {
             "TopicName": "string",

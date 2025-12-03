@@ -5,6 +5,7 @@ import { action } from "../_generated/server";
 import { ContentCreatorAgent } from "../../src/agents/content_agent";
 import { ContentGenerationSettings } from "../../src/types/content_schema";
 import { api } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 
 export const generate = action({
   args: {
@@ -19,7 +20,10 @@ export const generate = action({
     })),
     completedSubtopics: v.optional(v.array(v.string())), // Already generated subtopics
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{
+    contentId: Id<"content">;
+    content: any;
+  }> => {
     // Get roadmap data if roadmapId provided
     let roadmapJson = args.roadmapJson;
     if (args.roadmapId && !roadmapJson) {
@@ -80,7 +84,7 @@ export const generate = action({
     }
 
     // Save to database via mutation
-    const contentId = await ctx.runMutation(api.mutations.content.saveContent, {
+    const contentId: Id<"content"> = await ctx.runMutation(api.mutations.content.saveContent, {
       workspaceId: args.workspaceId,
       subtopicId: contentResult.id || args.subtopicId || "",
       markdown: contentResult.markdown,

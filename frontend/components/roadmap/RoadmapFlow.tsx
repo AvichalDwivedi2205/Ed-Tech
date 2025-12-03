@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useEffect } from "react";
 import {
   ReactFlow,
   Background,
@@ -14,6 +14,13 @@ import {
   Connection,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { RoadmapNode } from "./RoadmapNode";
+import { SubtopicNode } from "./SubtopicNode";
+
+const nodeTypes = {
+  roadmap: RoadmapNode,
+  subtopic: SubtopicNode,
+};
 
 interface RoadmapFlowProps {
   roadmapData: any;
@@ -29,82 +36,57 @@ export function RoadmapFlow({ roadmapData }: RoadmapFlowProps) {
     const flowEdges: Edge[] = [];
     let yPosition = 0;
     let xPosition = 0;
-    const nodeWidth = 250;
-    const nodeHeight = 120;
-    const horizontalSpacing = 300;
-    const verticalSpacing = 200;
+    const topicNodeWidth = 400;
+    const subtopicNodeWidth = 250;
+    const horizontalSpacing = 450;
+    const verticalSpacing = 300;
 
-    // Process roadmap data - filter out TeachingStyle and other non-subtopic keys
+    // Process roadmap data - filter out TeachingStyle and title keys
     const topics = Object.keys(roadmapData).filter(
-      (key) => key !== "TeachingStyle" && roadmapData[key]?.TopicName
+      (key) => key !== "TeachingStyle" && key !== "title" && roadmapData[key]?.TopicName
     );
     
     topics.forEach((topicId, topicIndex) => {
       const topic = roadmapData[topicId];
       const topicName = topic?.TopicName || topicId;
-      const contentList = topic?.ContentList?.topics || [];
+      const contentList = topic?.ContentList || {};
+      const subtopics = contentList?.topics || [];
+      const videos = contentList?.videos || [];
+      const blogs = contentList?.blogs || [];
+      const books = contentList?.books || [];
       const suggestedTime = topic?.SuggestedTimeToComplete;
 
-      // Create topic node (main topic)
+      // Create topic node (main topic) with resources
       const topicNode: Node = {
         id: `topic-${topicId}`,
-        type: "default",
+        type: "roadmap",
         position: { x: xPosition, y: yPosition },
         data: {
-          label: (
-            <div className="p-3">
-              <div className="font-bold text-lg text-blue-600 dark:text-blue-400 mb-1">
-                {topicName}
-              </div>
-              {suggestedTime && (
-                <div className="text-xs text-slate-500 dark:text-slate-400">
-                  ⏱ {suggestedTime}
-                </div>
-              )}
-            </div>
-          ),
+          topicName,
+          suggestedTime,
+          videos,
+          blogs,
+          books,
+          subtopics,
         },
-        style: {
-          background: "white",
-          border: "3px solid #2563eb",
-          borderRadius: "12px",
-          padding: 0,
-          width: nodeWidth,
-          minHeight: nodeHeight,
-          color: "#1e293b",
-          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-        },
+        draggable: true,
       };
       flowNodes.push(topicNode);
 
       // Create subtopic nodes (from topics array)
-      if (Array.isArray(contentList) && contentList.length > 0) {
-        contentList.forEach((subtopic: string, subtopicIndex: number) => {
+      if (Array.isArray(subtopics) && subtopics.length > 0) {
+        subtopics.forEach((subtopic: string, subtopicIndex: number) => {
           const subtopicNode: Node = {
             id: `subtopic-${topicId}-${subtopicIndex}`,
-            type: "default",
+            type: "subtopic",
             position: {
-              x: xPosition + (subtopicIndex + 1) * horizontalSpacing,
-              y: yPosition,
+              x: xPosition + horizontalSpacing,
+              y: yPosition + (subtopicIndex * 80), // Stack subtopics vertically
             },
             data: {
-              label: (
-                <div className="p-3">
-                  <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                    {subtopic}
-                  </div>
-                </div>
-              ),
+              subtopicName: subtopic,
             },
-            style: {
-              background: "#f8fafc",
-              border: "2px solid #cbd5e1",
-              borderRadius: "8px",
-              padding: 0,
-              width: nodeWidth,
-              minHeight: 80,
-              color: "#475569",
-            },
+            draggable: true,
           };
           flowNodes.push(subtopicNode);
 
@@ -115,7 +97,7 @@ export function RoadmapFlow({ roadmapData }: RoadmapFlowProps) {
             target: `subtopic-${topicId}-${subtopicIndex}`,
             type: "smoothstep",
             animated: true,
-            style: { stroke: "#64748b", strokeWidth: 3 },
+            style: { stroke: "#64748b", strokeWidth: 2 },
             label: `${subtopicIndex + 1}`,
           });
         });
@@ -138,6 +120,13 @@ export function RoadmapFlow({ roadmapData }: RoadmapFlowProps) {
     [setEdges]
   );
 
+  // Update nodes when roadmapData changes
+  useEffect(() => {
+    if (nodes.length > 0) {
+      setNodes(nodes);
+    }
+  }, [nodes, setNodes]);
+
   if (nodes.length === 0) {
     return (
       <div className="flex h-96 items-center justify-center rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-800">
@@ -147,22 +136,26 @@ export function RoadmapFlow({ roadmapData }: RoadmapFlowProps) {
   }
 
   return (
-    <div className="h-[700px] w-full rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-800 overflow-hidden">
+    <div className="h-[800px] w-full rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-800 overflow-hidden">
       <ReactFlow
         nodes={nodesState}
         edges={edgesState}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        nodeTypes={nodeTypes}
         fitView
         className="bg-slate-50 dark:bg-slate-900"
-        defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+        defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
+        nodesDraggable={true}
+        nodesConnectable={false}
+        elementsSelectable={true}
       >
         <Background color="#cbd5e1" gap={16} />
         <Controls className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
         <MiniMap
           nodeColor={(node) => {
-            if (node.id.startsWith("topic-")) return "#2563eb";
+            if (node.type === "roadmap") return "#2563eb";
             return "#64748b";
           }}
           className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
@@ -172,4 +165,3 @@ export function RoadmapFlow({ roadmapData }: RoadmapFlowProps) {
     </div>
   );
 }
-
