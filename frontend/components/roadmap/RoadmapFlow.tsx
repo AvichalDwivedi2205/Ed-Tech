@@ -41,9 +41,9 @@ export function RoadmapFlow({ roadmapData }: RoadmapFlowProps) {
     const horizontalSpacing = 450;
     const verticalSpacing = 300;
 
-    // Process roadmap data - filter out TeachingStyle and title keys
+    // Process roadmap data - filter out TeachingStyle, title, and RoadmapTitle keys
     const topics = Object.keys(roadmapData).filter(
-      (key) => key !== "TeachingStyle" && key !== "title" && roadmapData[key]?.TopicName
+      (key) => key !== "TeachingStyle" && key !== "title" && key !== "RoadmapTitle" && roadmapData[key]?.TopicName
     );
     
     topics.forEach((topicId, topicIndex) => {

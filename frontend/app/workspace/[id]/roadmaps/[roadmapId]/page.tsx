@@ -68,7 +68,7 @@ export default function RoadmapPage() {
         <Card className="p-8">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-              {roadmap.title || "Roadmap"}
+              {roadmapData.RoadmapTitle || roadmap.title || "Roadmap"}
             </h1>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
               Created {new Date(roadmap.createdAt).toLocaleDateString()}

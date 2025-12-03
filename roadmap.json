@@ -1,5 +1,6 @@
 {
   "TeachingStyle": "This roadmap is designed for a fast-paced learner with a foundational understanding of electrical engineering. It prioritizes efficient learning to achieve high grades by blending theoretical understanding with practical application, as outlined in the course syllabus. Key concepts are introduced concisely, followed by resources for deeper dives and hands-on practice, aligning with the course's strong lab component.",
+  "RoadmapTitle": "Communication Systems Course Roadmap",
   "Introduction to Communication Systems and Linear Signal Processing": {
     "TopicName": "Module I: Foundations of Communication Systems & Linear Signal Processing",
     "ContentList": {
