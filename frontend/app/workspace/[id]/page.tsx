@@ -35,15 +35,16 @@ export default function WorkspacePage() {
 
   if (workspace === undefined || workspaceContent === undefined) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-        <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-800">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-lg dark:border-slate-800/80 dark:bg-slate-900/80">
           <div className="container mx-auto flex items-center justify-between px-4 py-4">
-            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-10 w-48 rounded-xl" />
             <ThemeToggle />
           </div>
         </header>
         <main className="container mx-auto px-4 py-8">
-          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-16 w-full rounded-2xl mb-8" />
+          <Skeleton className="h-64 w-full rounded-2xl" />
         </main>
       </div>
     );
@@ -51,12 +52,12 @@ export default function WorkspacePage() {
 
   if (workspace === null) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-        <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-800">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-lg dark:border-slate-800/80 dark:bg-slate-900/80">
           <div className="container mx-auto flex items-center justify-between px-4 py-4">
             <Link href="/">
-              <Button variant="ghost">
-                <ArrowLeft className="mr-2 h-4 w-4" />
+              <Button variant="ghost" className="gap-2">
+                <ArrowLeft className="h-4 w-4" />
                 Back
               </Button>
             </Link>
@@ -64,11 +65,23 @@ export default function WorkspacePage() {
           </div>
         </header>
         <main className="container mx-auto px-4 py-8">
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-slate-600 dark:text-slate-400">
+          <Card className="border-2 border-dashed border-slate-300 dark:border-slate-700">
+            <CardContent className="py-16 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+                <Layers className="h-8 w-8 text-slate-400" />
+              </div>
+              <h3 className="mt-4 text-xl font-semibold text-slate-600 dark:text-slate-400">
                 Workspace not found
+              </h3>
+              <p className="mt-2 text-slate-500">
+                This workspace may have been deleted or doesn&apos;t exist.
               </p>
+              <Link href="/">
+                <Button className="mt-6" variant="outline">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Home
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </main>
@@ -84,22 +97,22 @@ export default function WorkspacePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Header */}
-      <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-800">
+      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/80 backdrop-blur-lg dark:border-slate-800/80 dark:bg-slate-900/80">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
           <div className="flex items-center gap-4">
             <Link href="/">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-4 w-4" />
+              <Button variant="ghost" size="icon" className="rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">
+                <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
                 {workspace.name}
               </h1>
               {workspace.description && (
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   {workspace.description}
                 </p>
               )}
@@ -115,26 +128,38 @@ export default function WorkspacePage() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="roadmaps" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="roadmaps" className="flex items-center gap-2">
+          <TabsList className="mb-8 inline-flex h-auto gap-1 rounded-2xl bg-slate-100/80 p-1.5 dark:bg-slate-800/80">
+            <TabsTrigger value="roadmaps" className="flex items-center gap-2 rounded-xl px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-700">
               <Layers className="h-4 w-4" />
-              Roadmaps ({roadmaps?.length || 0})
+              <span className="hidden sm:inline">Roadmaps</span>
+              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium dark:bg-slate-600">
+                {roadmaps?.length || 0}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="content" className="flex items-center gap-2">
+            <TabsTrigger value="content" className="flex items-center gap-2 rounded-xl px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-700">
               <FileText className="h-4 w-4" />
-              Content ({content?.length || 0})
+              <span className="hidden sm:inline">Content</span>
+              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium dark:bg-slate-600">
+                {content?.length || 0}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="flashcards" className="flex items-center gap-2">
+            <TabsTrigger value="flashcards" className="flex items-center gap-2 rounded-xl px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-700">
               <BookOpen className="h-4 w-4" />
-              Flashcards ({flashcards?.length || 0})
+              <span className="hidden sm:inline">Flashcards</span>
+              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium dark:bg-slate-600">
+                {flashcards?.length || 0}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="quizzes" className="flex items-center gap-2">
+            <TabsTrigger value="quizzes" className="flex items-center gap-2 rounded-xl px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-700">
               <HelpCircle className="h-4 w-4" />
-              Quizzes ({quizzes?.length || 0})
+              <span className="hidden sm:inline">Quizzes</span>
+              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium dark:bg-slate-600">
+                {quizzes?.length || 0}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="documents" className="flex items-center gap-2">
+            <TabsTrigger value="documents" className="flex items-center gap-2 rounded-xl px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-700">
               <Database className="h-4 w-4" />
-              Documents
+              <span className="hidden sm:inline">Documents</span>
             </TabsTrigger>
           </TabsList>
 
@@ -177,66 +202,128 @@ function RoadmapsTab({
   onRoadmapGenerated?: () => void;
 }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const router = useRouter();
 
-  if (roadmaps.length === 0) {
+  // Get the first (and should be only) roadmap
+  const roadmap = roadmaps[0];
+  const hasRoadmap = roadmaps.length > 0;
+
+  // If there's already a roadmap, show it prominently
+  if (hasRoadmap && roadmap) {
+    const roadmapData = roadmap.roadmapData || {};
+    const title = roadmapData.RoadmapTitle || roadmapData.title || roadmap.title || "Learning Roadmap";
+    const teachingStyle = roadmapData.TeachingStyle || roadmap.teachingStyle;
+    
+    // Count topics
+    const topicCount = Object.keys(roadmapData).filter(
+      (key) => key !== "TeachingStyle" && key !== "title" && key !== "RoadmapTitle" && roadmapData[key]?.TopicName
+    ).length;
+
     return (
-      <>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Layers className="mx-auto h-12 w-12 text-slate-400" />
-            <h3 className="mt-4 text-lg font-semibold text-slate-900 dark:text-slate-100">
-              No roadmaps yet
-            </h3>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 mb-6">
-              Generate a roadmap to get started
-            </p>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Generate Roadmap
-            </Button>
+      <div className="space-y-6">
+        {/* Hero Card for the Roadmap */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 p-8 text-white shadow-2xl">
+          {/* Decorative elements */}
+          <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10" />
+          <div className="absolute -bottom-8 -left-8 h-48 w-48 rounded-full bg-white/5" />
+          <div className="absolute right-8 top-8 h-24 w-24 rounded-full bg-white/5" />
+          
+          <div className="relative z-10">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                    <Layers className="h-6 w-6" />
+                  </div>
+                  <span className="rounded-full bg-white/20 px-3 py-1 text-sm font-medium backdrop-blur-sm">
+                    Your Learning Path
+                  </span>
+                </div>
+                <h2 className="mt-4 text-2xl font-bold leading-tight lg:text-3xl">
+                  {title}
+                </h2>
+                <div className="mt-4 flex flex-wrap items-center gap-4 text-white/80">
+                  <div className="flex items-center gap-2">
+                    <Layers className="h-4 w-4" />
+                    <span>{topicCount} Topics</span>
+                  </div>
+                  {teachingStyle && (
+                    <div className="flex items-center gap-2">
+                      <span>•</span>
+                      <span>{teachingStyle}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <span>•</span>
+                    <span>Created {new Date(roadmap.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-6">
+              <Link href={`/workspace/${workspaceId}/roadmaps/${roadmap._id}`}>
+                <Button 
+                  size="lg" 
+                  className="bg-white text-indigo-700 hover:bg-white/90 shadow-lg transition-all hover:shadow-xl hover:scale-[1.02]"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4 rotate-180" />
+                  Open Roadmap
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Info Card */}
+        <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800/50 dark:bg-amber-900/20">
+          <CardContent className="flex items-start gap-4 py-4">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-800/50">
+              <Layers className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-amber-800 dark:text-amber-200">One Roadmap Per Workspace</h4>
+              <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                Each workspace is designed for focused learning with a single comprehensive roadmap. 
+                Create a new workspace if you want to explore a different topic.
+              </p>
+            </div>
           </CardContent>
         </Card>
-        <GenerateRoadmapDialog
-          open={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
-          workspaceId={workspaceId}
-          onSuccess={onRoadmapGenerated}
-        />
-      </>
+      </div>
     );
   }
 
+  // No roadmap yet - show empty state with generate button
   return (
     <>
-      <div>
-        <div className="mb-4 flex justify-end">
-          <Button onClick={() => setIsDialogOpen(true)} size="sm">
-            <Plus className="mr-2 h-4 w-4" />
-            Generate Roadmap
+      <Card className="border-2 border-dashed border-slate-300 bg-gradient-to-br from-slate-50 to-slate-100/50 dark:border-slate-700 dark:from-slate-900 dark:to-slate-800/50">
+        <CardContent className="py-16 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25">
+            <Layers className="h-10 w-10 text-white" />
+          </div>
+          <h3 className="mt-6 text-2xl font-bold text-slate-900 dark:text-slate-100">
+            Start Your Learning Journey
+          </h3>
+          <p className="mx-auto mt-3 max-w-md text-slate-600 dark:text-slate-400">
+            Generate a personalized learning roadmap tailored to your goals, 
+            skill level, and preferred learning style.
+          </p>
+          <Button 
+            onClick={() => setIsDialogOpen(true)} 
+            size="lg" 
+            className="mt-8 bg-gradient-to-r from-blue-600 to-indigo-600 px-8 shadow-lg transition-all hover:shadow-xl hover:scale-[1.02]"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Generate Your Roadmap
           </Button>
-        </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {roadmaps.map((roadmap) => (
-            <Card key={roadmap._id} className="cursor-pointer hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle>{roadmap.title || "Untitled Roadmap"}</CardTitle>
-                <CardDescription>
-                  Created {new Date(roadmap.createdAt).toLocaleDateString()}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href={`/workspace/${workspaceId}/roadmaps/${roadmap._id}`}>
-                  <Button variant="outline" className="w-full">View Roadmap</Button>
-                </Link>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
       <GenerateRoadmapDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         workspaceId={workspaceId}
+        onSuccess={onRoadmapGenerated}
       />
     </>
   );

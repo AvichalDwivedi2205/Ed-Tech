@@ -2,6 +2,7 @@
 
 import { WorkspaceCard } from "./WorkspaceCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FolderPlus, Sparkles } from "lucide-react";
 import type { Id } from "convex/_generated/dataModel";
 
 interface Workspace {
@@ -30,28 +31,20 @@ export function WorkspaceGrid({ workspaces, isLoading }: WorkspaceGridProps) {
 
   if (!workspaces || workspaces.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="rounded-full bg-slate-100 p-6 dark:bg-slate-800">
-          <svg
-            className="h-12 w-12 text-slate-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-            />
-          </svg>
+      <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50/50 py-16 text-center dark:border-slate-700 dark:bg-slate-800/30">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800">
+          <FolderPlus className="h-10 w-10 text-slate-400 dark:text-slate-500" />
         </div>
-        <h3 className="mt-4 text-lg font-semibold text-slate-900 dark:text-slate-100">
+        <h3 className="mt-6 text-xl font-bold text-slate-900 dark:text-slate-100">
           No workspaces yet
         </h3>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-          Create your first workspace to get started
+        <p className="mt-2 max-w-sm text-slate-600 dark:text-slate-400">
+          Create your first workspace above to start your learning journey
         </p>
+        <div className="mt-6 flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+          <Sparkles className="h-4 w-4" />
+          <span>AI-powered roadmaps await!</span>
+        </div>
       </div>
     );
   }
@@ -73,11 +66,11 @@ export function WorkspaceGrid({ workspaces, isLoading }: WorkspaceGridProps) {
 
 function CardSkeleton() {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-800">
-      <div className="flex items-start gap-3">
-        <Skeleton className="h-10 w-10 rounded-lg" />
+    <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-6 dark:border-slate-700/80 dark:bg-slate-800/80">
+      <div className="flex items-start gap-4">
+        <Skeleton className="h-12 w-12 rounded-xl" />
         <div className="flex-1 space-y-2">
-          <Skeleton className="h-5 w-3/4" />
+          <Skeleton className="h-5 w-3/4 rounded-lg" />
           <Skeleton className="h-4 w-1/2" />
         </div>
       </div>
