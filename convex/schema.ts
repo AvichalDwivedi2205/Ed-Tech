@@ -59,6 +59,26 @@ export default defineSchema({
       filterFields: ["workspaceId", "ragNamespace"],
     }),
 
+  roadmapGenerations: defineTable({
+    workspaceId: v.id("workspaces"),
+    userInput: v.string(),
+    messages: v.array(v.any()),
+    clarificationCount: v.number(),
+    waitingForResponse: v.boolean(),
+    roadmapContext: v.optional(v.string()),
+    ocrText: v.optional(v.string()),
+    status: v.union(
+      v.literal("clarifying"),
+      v.literal("generating"),
+      v.literal("completed"),
+      v.literal("failed")
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_status", ["status"]),
+
   roadmaps: defineTable({
     workspaceId: v.id("workspaces"),
     roadmapData: v.optional(v.any()),

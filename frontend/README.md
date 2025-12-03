@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OpenT Frontend
 
-## Getting Started
+A beautiful, modern UI for the OpenT learning platform built with Next.js, Convex, and Shadcn UI.
 
-First, run the development server:
+## Features
 
+- 🎨 Beautiful, study-focused UI with dark mode support
+- 📊 Interactive roadmap flowcharts
+- 📝 Markdown content renderer with LaTeX math support
+- 🃏 Flashcard viewer with 3D flip animations
+- ❓ Interactive quiz viewer with results
+- 📚 RAG document management
+- ⚡ Real-time updates with Convex
+- 🎭 Smooth animations and transitions
+
+## Setup
+
+1. Install dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Set up environment variables:
+```bash
+cp .env.example .env.local
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Add your Convex deployment URL to `.env.local`:
+```
+NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Run the development server:
+```bash
+pnpm dev
+```
 
-## Learn More
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-To learn more about Next.js, take a look at the following resources:
+## Tech Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Next.js 16** - React framework with App Router
+- **Convex** - Real-time backend
+- **Shadcn UI** - Beautiful component library
+- **Tailwind CSS** - Styling
+- **Framer Motion** - Animations
+- **React Flow** - Flowchart visualization
+- **React Markdown** - Markdown rendering
+- **KaTeX** - LaTeX math rendering
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+frontend/
+├── app/                    # Next.js app router pages
+│   ├── page.tsx           # Dashboard (workspace list)
+│   └── workspace/         # Workspace pages
+│       └── [id]/          # Workspace detail
+├── components/            # React components
+│   ├── ui/               # Shadcn UI components
+│   ├── workspace/        # Workspace components
+│   ├── roadmap/          # Roadmap components
+│   ├── content/          # Content components
+│   ├── flashcard/        # Flashcard components
+│   └── quiz/             # Quiz components
+└── lib/                  # Utilities
+    └── convex/           # Convex client setup
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Color Palette
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The UI uses a study-focused color palette (no purple):
+
+- **Primary**: Blue (#2563eb)
+- **Secondary**: Green (#059669)
+- **Accent**: Red (#dc2626)
+- **Background**: Slate (#f8fafc light / #0f172a dark)
+
+## Development
+
+- Run `pnpm dev` to start the development server
+- Run `pnpm build` to build for production
+- Run `pnpm start` to start the production server
