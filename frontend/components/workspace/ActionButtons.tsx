@@ -14,7 +14,10 @@ interface ActionButtonsProps {
 
 export function ActionButtons({ workspaceId, onRoadmapGenerated }: ActionButtonsProps) {
   const [isGeneratingRoadmap, setIsGeneratingRoadmap] = useState(false);
-  const generateRoadmap = useAction(api.actions.roadmap.generate);
+  const startGeneration = useAction(api.actions.roadmap.startGeneration);
+  const continueGeneration = useAction(api.actions.roadmap.continueGeneration);
+  const [generationId, setGenerationId] = useState<Id<"roadmapGenerations"> | null>(null);
+  const [clarificationQuestion, setClarificationQuestion] = useState("");
 
   const handleGenerateRoadmap = async () => {
     setIsGeneratingRoadmap(true);
@@ -25,9 +28,25 @@ export function ActionButtons({ workspaceId, onRoadmapGenerated }: ActionButtons
         return;
       }
 
-      await generateRoadmap({
+      const result = await startGeneration({
         workspaceId,
         userInput: userInput.trim(),
+      });
+
+      setGenerationId(result.generationId);
+      setClarificationQuestion(result.clarificationQuestion);
+      
+      // Ask for clarification answer
+      const userAnswer = prompt(result.clarificationQuestion + "\n\nYour answer:");
+      if (!userAnswer || !userAnswer.trim()) {
+        setIsGeneratingRoadmap(false);
+        return;
+      }
+
+      // Continue generation with user's answer
+      await continueGeneration({
+        generationId: result.generationId,
+        userAnswer: userAnswer.trim(),
       });
       
       if (onRoadmapGenerated) {
@@ -40,6 +59,8 @@ export function ActionButtons({ workspaceId, onRoadmapGenerated }: ActionButtons
       alert(`Failed to generate roadmap: ${error.message}`);
     } finally {
       setIsGeneratingRoadmap(false);
+      setGenerationId(null);
+      setClarificationQuestion("");
     }
   };
 
