@@ -197,6 +197,79 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
       return '\n$$\n' + content.trim() + '\n$$\n';
     });
 
+  // Detect and wrap unwrapped code blocks
+  // Pattern: Lines that look like code but aren't in code blocks
+  // Look for patterns like "variable = " or "import " or "def " or "print(" etc.
+  const codePatterns = [
+    /^(\s*)(import\s+\w+|from\s+\w+\s+import)/gm,
+    /^(\s*)(def\s+\w+\s*\(|class\s+\w+)/gm,
+    /^(\s*)(for\s+\w+\s+in\s+|while\s+|if\s+\w+)/gm,
+    /^(\s*)(\w+\s*=\s*(?:np\.|pd\.|plt\.|torch\.|tf\.))/gm,
+    /^(\s*)(print\(f?[\"']|return\s+)/gm,
+  ];
+  
+  // Check if content has code patterns but they're not in code blocks
+  // This is a heuristic fix for when LLM doesn't properly wrap code
+  const lines = fixedContent.split('\n');
+  let inCodeBlock = false;
+  let codeBlockStart = -1;
+  const processedLines: string[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Track code block state
+    if (line.trim().startsWith('```')) {
+      if (inCodeBlock) {
+        inCodeBlock = false;
+      } else {
+        inCodeBlock = true;
+      }
+      processedLines.push(line);
+      continue;
+    }
+    
+    // If not in code block, check if line looks like code
+    if (!inCodeBlock) {
+      const looksLikeCode = codePatterns.some(pattern => {
+        pattern.lastIndex = 0; // Reset regex
+        return pattern.test(line);
+      });
+      
+      if (looksLikeCode && codeBlockStart === -1) {
+        // Start a new code block
+        codeBlockStart = i;
+        processedLines.push('```python');
+        processedLines.push(line);
+      } else if (codeBlockStart !== -1) {
+        // We're in an auto-detected code section
+        const isEmptyOrCode = line.trim() === '' || 
+          line.trim().startsWith('#') ||
+          /^\s*[\w\[\]{}().,=+\-*/:'"]+/.test(line);
+        
+        if (isEmptyOrCode && !line.startsWith('##') && !line.startsWith('**')) {
+          processedLines.push(line);
+        } else {
+          // End the auto-detected code block
+          processedLines.push('```');
+          processedLines.push(line);
+          codeBlockStart = -1;
+        }
+      } else {
+        processedLines.push(line);
+      }
+    } else {
+      processedLines.push(line);
+    }
+  }
+  
+  // Close any unclosed code blocks
+  if (codeBlockStart !== -1) {
+    processedLines.push('```');
+  }
+  
+  fixedContent = processedLines.join('\n');
+
   // Extract resources from content
   const resources = parseResources(fixedContent);
   

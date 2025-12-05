@@ -10,7 +10,7 @@ import { MiniDrona } from "@/components/ai/MiniDrona";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookOpen, Calendar, Clock, GraduationCap, Layers, FileText, HelpCircle, Loader2, Sparkles, RefreshCw, Globe, Database, Settings, ChevronDown } from "lucide-react";
+import { ArrowLeft, BookOpen, Calendar, Clock, GraduationCap, Layers, FileText, HelpCircle, Loader2, Sparkles, RefreshCw, Globe, Database, Settings, ChevronDown, StickyNote } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ConvexStatus } from "@/components/ConvexStatus";
 import Link from "next/link";
@@ -27,12 +27,14 @@ export default function ContentPage() {
   const [viewMode, setViewMode] = useState<"slides" | "full">("slides");
   const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
+  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
   const [isRegeneratingContent, setIsRegeneratingContent] = useState(false);
   const [contentSource, setContentSource] = useState<ContentSource>("web");
   const [showSourceOptions, setShowSourceOptions] = useState(false);
 
   const generateFlashcards = useAction(api.actions.flashcard.generate);
   const generateQuiz = useAction(api.actions.quiz.generate);
+  const generateNotes = useAction(api.actions.notes.generate);
   const generateContent = useAction(api.actions.content.generate);
 
   const content = useQuery(api.queries.content.getContent, {
@@ -128,6 +130,29 @@ export default function ContentPage() {
       alert(`Failed to generate quiz: ${error.message}`);
     } finally {
       setIsGeneratingQuiz(false);
+    }
+  };
+
+  const handleGenerateNotes = async () => {
+    if (!content || isGeneratingNotes) return;
+    
+    setIsGeneratingNotes(true);
+    try {
+      const result = await generateNotes({
+        workspaceId,
+        subtopicId: content.subtopicId,
+        contentId,
+        topicName: content.subtopicName || content.subtopicId,
+      });
+      
+      if (result?.notesId) {
+        router.push(`/workspace/${workspaceId}/notes/${result.notesId}`);
+      }
+    } catch (error: any) {
+      console.error("Failed to generate notes:", error);
+      alert(`Failed to generate notes: ${error.message}`);
+    } finally {
+      setIsGeneratingNotes(false);
     }
   };
 
@@ -265,7 +290,7 @@ export default function ContentPage() {
               <div className="mt-6 flex flex-wrap gap-3">
                 <Button
                   onClick={handleGenerateFlashcards}
-                  disabled={isGeneratingFlashcards || isGeneratingQuiz || isRegeneratingContent}
+                  disabled={isGeneratingFlashcards || isGeneratingQuiz || isGeneratingNotes || isRegeneratingContent}
                   className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-0"
                 >
                   {isGeneratingFlashcards ? (
@@ -282,7 +307,7 @@ export default function ContentPage() {
                 </Button>
                 <Button
                   onClick={handleGenerateQuiz}
-                  disabled={isGeneratingFlashcards || isGeneratingQuiz || isRegeneratingContent}
+                  disabled={isGeneratingFlashcards || isGeneratingQuiz || isGeneratingNotes || isRegeneratingContent}
                   className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-0"
                 >
                   {isGeneratingQuiz ? (
@@ -297,13 +322,30 @@ export default function ContentPage() {
                     </>
                   )}
                 </Button>
+                <Button
+                  onClick={handleGenerateNotes}
+                  disabled={isGeneratingFlashcards || isGeneratingQuiz || isGeneratingNotes || isRegeneratingContent}
+                  className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-0"
+                >
+                  {isGeneratingNotes ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating Notes...
+                    </>
+                  ) : (
+                    <>
+                      <StickyNote className="mr-2 h-4 w-4" />
+                      Quick Notes
+                    </>
+                  )}
+                </Button>
 
                 {/* Regenerate Content with Source Selection */}
                 <div className="relative">
                   <div className="flex items-center gap-1">
                     <Button
                       onClick={handleRegenerateContent}
-                      disabled={isGeneratingFlashcards || isGeneratingQuiz || isRegeneratingContent}
+                      disabled={isGeneratingFlashcards || isGeneratingQuiz || isGeneratingNotes || isRegeneratingContent}
                       className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-0 rounded-r-none"
                     >
                       {isRegeneratingContent ? (
@@ -320,7 +362,7 @@ export default function ContentPage() {
                     </Button>
                     <Button
                       onClick={() => setShowSourceOptions(!showSourceOptions)}
-                      disabled={isGeneratingFlashcards || isGeneratingQuiz || isRegeneratingContent}
+                      disabled={isGeneratingFlashcards || isGeneratingQuiz || isGeneratingNotes || isRegeneratingContent}
                       className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-0 rounded-l-none px-2"
                     >
                       {getSourceIcon(contentSource)}

@@ -45,11 +45,17 @@ export const getWorkspaceContent = query({
             .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
             .collect();
 
+        const notes = await ctx.db
+            .query("notes")
+            .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+            .collect();
+
         return {
             roadmaps,
             content,
             quizzes,
             flashcards,
+            notes,
         };
     },
 });

@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, EyeOff } from "lucide-react";
 
 interface QuizQuestion {
   question: string;
-  options: string[];
+  options?: string[];
   correctAnswer: number;
   explanation?: string;
 }
@@ -17,20 +17,37 @@ interface QuizViewerProps {
   title?: string;
 }
 
-export function QuizViewer({ questions, title }: QuizViewerProps) {
+export function QuizViewer({ questions: rawQuestions, title }: QuizViewerProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [revealedAnswers, setRevealedAnswers] = useState<Set<number>>(new Set());
+
+  // Filter out questions with invalid options
+  const questions = rawQuestions.filter(q => q.options && Array.isArray(q.options) && q.options.length > 0);
 
   if (questions.length === 0) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <p className="text-slate-600 dark:text-slate-400">No questions available</p>
+          <p className="text-slate-600 dark:text-slate-400">No valid questions available</p>
+          <p className="text-sm text-slate-500 dark:text-slate-500 mt-2">Questions may have been filtered due to missing options.</p>
         </CardContent>
       </Card>
     );
   }
+
+  const toggleRevealAnswer = (questionIndex: number) => {
+    setRevealedAnswers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(questionIndex)) {
+        newSet.delete(questionIndex);
+      } else {
+        newSet.add(questionIndex);
+      }
+      return newSet;
+    });
+  };
 
   const handleAnswerSelect = (answerIndex: number) => {
     if (showResults) return;
@@ -72,6 +89,7 @@ export function QuizViewer({ questions, title }: QuizViewerProps) {
   const question = questions[currentQuestion];
   const selectedAnswer = selectedAnswers[currentQuestion];
   const isCorrect = selectedAnswer !== undefined && selectedAnswer === question.correctAnswer;
+  const isAnswerRevealed = revealedAnswers.has(currentQuestion);
 
   if (showResults && currentQuestion === questions.length - 1) {
     const score = calculateScore();
@@ -105,9 +123,9 @@ export function QuizViewer({ questions, title }: QuizViewerProps) {
                       <div className="flex-1">
                         <p className="font-semibold mb-2">{q.question}</p>
                         <p className="text-sm text-slate-600 dark:text-slate-400">
-                          Your answer: {q.options[userAnswer]}
+                          Your answer: {q.options && q.options[userAnswer] ? q.options[userAnswer] : 'No answer'}
                         </p>
-                        {!isQCorrect && (
+                        {!isQCorrect && q.options && q.options[q.correctAnswer] && (
                           <p className="text-sm text-green-600 dark:text-green-400 mt-1">
                             Correct answer: {q.options[q.correctAnswer]}
                           </p>
@@ -148,10 +166,10 @@ export function QuizViewer({ questions, title }: QuizViewerProps) {
             {question.question}
           </p>
           <div className="space-y-2">
-            {question.options.map((option, index) => {
+            {(question.options || []).map((option, index) => {
               const isSelected = selectedAnswer === index;
-              const showCorrect = showResults && index === question.correctAnswer;
-              const showIncorrect = showResults && isSelected && index !== question.correctAnswer;
+              const showCorrect = (showResults || isAnswerRevealed) && index === question.correctAnswer;
+              const showIncorrect = (showResults || isAnswerRevealed) && isSelected && index !== question.correctAnswer;
               
               return (
                 <button
@@ -198,7 +216,7 @@ export function QuizViewer({ questions, title }: QuizViewerProps) {
           </div>
         </div>
 
-        {question.explanation && showResults && (
+        {question.explanation && (showResults || isAnswerRevealed) && (
           <div className="rounded-lg bg-slate-100 p-4 dark:bg-slate-800">
             <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-1">
               Explanation:
@@ -206,6 +224,24 @@ export function QuizViewer({ questions, title }: QuizViewerProps) {
             <p className="text-sm text-slate-600 dark:text-slate-400">
               {question.explanation}
             </p>
+          </div>
+        )}
+
+        {/* Reveal Answer Button */}
+        {selectedAnswer !== undefined && !showResults && (
+          <div className="flex justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toggleRevealAnswer(currentQuestion)}
+              className="gap-2"
+            >
+              {isAnswerRevealed ? (
+                <><EyeOff className="h-4 w-4" /> Hide Answer</>
+              ) : (
+                <><Eye className="h-4 w-4" /> Reveal Answer</>
+              )}
+            </Button>
           </div>
         )}
 

@@ -7,7 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookOpen, FileText, Layers, HelpCircle, Database, Plus, Upload, Loader2, Sparkles, X } from "lucide-react";
+import { ArrowLeft, BookOpen, FileText, Layers, HelpCircle, Database, Plus, Upload, Loader2, Sparkles, X, StickyNote } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ConvexStatus } from "@/components/ConvexStatus";
@@ -90,11 +90,12 @@ function WorkspacePage() {
     );
   }
 
-  const { roadmaps, content, quizzes, flashcards } = workspaceContent || {
+  const { roadmaps, content, quizzes, flashcards, notes } = workspaceContent || {
     roadmaps: [],
     content: [],
     quizzes: [],
     flashcards: [],
+    notes: [],
   };
 
   return (
@@ -158,6 +159,13 @@ function WorkspacePage() {
                 {quizzes?.length || 0}
               </span>
             </TabsTrigger>
+            <TabsTrigger value="notes" className="flex items-center gap-2 rounded-xl px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-700">
+              <StickyNote className="h-4 w-4" />
+              <span className="hidden sm:inline">Notes</span>
+              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium dark:bg-slate-600">
+                {notes?.length || 0}
+              </span>
+            </TabsTrigger>
             <TabsTrigger value="documents" className="flex items-center gap-2 rounded-xl px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-700">
               <Database className="h-4 w-4" />
               <span className="hidden sm:inline">Documents</span>
@@ -182,6 +190,10 @@ function WorkspacePage() {
 
           <TabsContent value="quizzes">
             <QuizzesTab quizzes={quizzes || []} workspaceId={workspaceId} content={content || []} />
+          </TabsContent>
+
+          <TabsContent value="notes">
+            <NotesTab notes={notes || []} workspaceId={workspaceId} content={content || []} />
           </TabsContent>
 
           <TabsContent value="documents">
@@ -594,6 +606,125 @@ function QuizzesTab({ quizzes, workspaceId, content }: { quizzes: any[]; workspa
               <CardContent>
                 <Link href={`/workspace/${workspaceId}/quizzes/${quiz._id}`}>
                   <Button variant="outline" className="w-full">Take Quiz</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NotesTab({ notes, workspaceId, content }: { notes: any[]; workspaceId: Id<"workspaces">; content: any[] }) {
+  const router = useRouter();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedContentId, setSelectedContentId] = useState<string>("");
+  const generateNotes = useAction(api.actions.notes.generate);
+
+  const handleGenerate = async () => {
+    if (!selectedContentId || isGenerating) return;
+    
+    const selectedContent = content.find(c => c._id === selectedContentId);
+    if (!selectedContent) return;
+    
+    setIsGenerating(true);
+    try {
+      const result = await generateNotes({
+        workspaceId,
+        subtopicId: selectedContent.subtopicId,
+        contentId: selectedContentId as Id<"content">,
+        topicName: selectedContent.subtopicName || selectedContent.subtopicId,
+      });
+      
+      if (result?.notesId) {
+        router.push(`/workspace/${workspaceId}/notes/${result.notesId}`);
+      }
+    } catch (error: any) {
+      console.error("Failed to generate notes:", error);
+      alert(`Failed to generate notes: ${error.message}`);
+    } finally {
+      setIsGenerating(false);
+      setSelectedContentId("");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Generate Notes Section */}
+      {content.length > 0 && (
+        <Card className="border-dashed border-2 border-teal-200 bg-teal-50/50 dark:border-teal-800/50 dark:bg-teal-900/20">
+          <CardContent className="py-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex-1">
+                <h3 className="font-semibold text-teal-900 dark:text-teal-100">Generate Quick Notes</h3>
+                <p className="text-sm text-teal-700 dark:text-teal-300 mt-1">
+                  Create bite-sized study notes from content
+                </p>
+              </div>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <select
+                  value={selectedContentId}
+                  onChange={(e) => setSelectedContentId(e.target.value)}
+                  className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-teal-300 dark:border-teal-700 bg-white dark:bg-slate-800 text-sm"
+                  disabled={isGenerating}
+                >
+                  <option value="">Select content...</option>
+                  {content.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.subtopicName || c.subtopicId}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  onClick={handleGenerate}
+                  disabled={!selectedContentId || isGenerating}
+                  className="bg-teal-600 hover:bg-teal-700"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Generate
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {notes.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <StickyNote className="mx-auto h-12 w-12 text-slate-400" />
+            <h3 className="mt-4 text-lg font-semibold">No quick notes yet</h3>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+              {content.length > 0 
+                ? "Select content above and click Generate to create quick study notes"
+                : "Generate content first, then create notes"
+              }
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {notes.map((note) => (
+            <Card key={note._id} className="cursor-pointer hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle>Notes: {note.notesData?.topicName || note.subtopicId}</CardTitle>
+                <CardDescription>
+                  {note.notesData?.notes?.length || 0} cards · Created {new Date(note.createdAt).toLocaleDateString()}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href={`/workspace/${workspaceId}/notes/${note._id}`}>
+                  <Button variant="outline" className="w-full">View Notes</Button>
                 </Link>
               </CardContent>
             </Card>

@@ -134,4 +134,14 @@ export default defineSchema({
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_subtopic", ["workspaceId", "subtopicId"]),
+
+  notes: defineTable({
+    workspaceId: v.id("workspaces"),
+    subtopicId: v.string(),
+    notesData: v.any(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_subtopic", ["workspaceId", "subtopicId"]),
 });
