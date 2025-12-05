@@ -75,7 +75,7 @@ export const ingestFromStorage = action({
     }
 
     // Check page limit
-    if (pageCount > 200) {
+    if (pageCount > 500) {
       const docId: Id<"documents"> = await ctx.runMutation(api.rag.insertDocument, {
         workspaceId: args.workspaceId,
         ragNamespace: args.ragNamespace,
@@ -90,7 +90,7 @@ export const ingestFromStorage = action({
       return {
         documentId: docId,
         status: "skipped_page_limit",
-        message: `Document exceeds 200 page limit (${pageCount} pages)`,
+        message: `Document exceeds 500 page limit (${pageCount} pages)`,
       };
     }
 

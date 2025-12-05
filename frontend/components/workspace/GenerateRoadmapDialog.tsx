@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -33,6 +33,7 @@ export function GenerateRoadmapDialog({
   const [isStarting, setIsStarting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [clarificationQuestion, setClarificationQuestion] = useState("");
   const [userAnswer, setUserAnswer] = useState("");
   const [generationId, setGenerationId] = useState<Id<"roadmapGenerations"> | null>(null);
@@ -64,10 +65,7 @@ export function GenerateRoadmapDialog({
     }
   }, [activeGeneration]);
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = async (file: File) => {
     // Validate file type
     const validTypes = [".pdf", ".png", ".jpg", ".jpeg", ".webp"];
     const fileExt = file.name.toLowerCase().substring(file.name.lastIndexOf("."));
@@ -99,21 +97,49 @@ export function GenerateRoadmapDialog({
       }
 
       // Extract storage ID from response
-      const storageId = await uploadResponse.text();
-      setFileStorageId(storageId as Id<"_storage">);
+      const storageIdJson = await uploadResponse.json();
+      const storageId = storageIdJson.storageId as Id<"_storage">;
+      setFileStorageId(storageId);
       setFileName(file.name);
     } catch (error: any) {
       console.error("Failed to upload file:", error);
       alert(`Failed to upload file: ${error.message}`);
-      setIsUploading(false);
     } finally {
       setIsUploading(false);
+      setIsDragging(false);
     }
   };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await processFile(file);
+  };
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      await processFile(file);
+    }
+  }, []);
 
   const handleRemoveFile = () => {
     setFileStorageId(null);
     setFileName(null);
+    setIsDragging(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -269,7 +295,19 @@ export function GenerateRoadmapDialog({
                   Optional: Upload PDF or Image (Syllabus/Course Outline)
                 </label>
                 {!fileStorageId ? (
-                  <div className="flex items-center gap-2">
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`
+                      relative rounded-lg border-2 border-dashed p-4 text-center transition-all
+                      ${isDragging 
+                        ? "border-blue-500 bg-blue-50/50 dark:border-blue-400 dark:bg-blue-900/20" 
+                        : "border-slate-300 hover:border-slate-400 dark:border-slate-700 dark:hover:border-slate-600"
+                      }
+                      ${isUploading || isStarting ? "pointer-events-none opacity-60" : ""}
+                    `}
+                  >
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -279,25 +317,30 @@ export function GenerateRoadmapDialog({
                       className="hidden"
                       id="roadmap-file-upload"
                     />
-                    <label
-                      htmlFor="roadmap-file-upload"
-                      className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
+                    <div className="flex flex-col items-center gap-2">
                       {isUploading ? (
                         <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Uploading...
+                          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                          <p className="text-sm text-blue-600 dark:text-blue-400">Uploading...</p>
                         </>
                       ) : (
                         <>
-                          <Upload className="h-4 w-4" />
-                          Choose File
+                          <Upload className="h-8 w-8 text-slate-400" />
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            {isDragging ? "Drop file here" : "Drag & drop file here"}
+                          </p>
+                          <label
+                            htmlFor="roadmap-file-upload"
+                            className="cursor-pointer text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                          >
+                            or click to browse
+                          </label>
+                          <span className="text-xs text-slate-400 dark:text-slate-500">
+                            PDF, PNG, JPG, WEBP (max 10MB)
+                          </span>
                         </>
                       )}
-                    </label>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                      PDF, PNG, JPG, WEBP (max 10MB)
-                    </span>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">

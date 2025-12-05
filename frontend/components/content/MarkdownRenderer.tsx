@@ -181,21 +181,41 @@ function parseResources(content: string): { type: string; title: string; url: st
 }
 
 export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
+  // Fix over-escaped LaTeX backslashes (common issue from JSON parsing)
+  // Convert \\\\ back to \\ for proper LaTeX rendering
+  let fixedContent = content
+    // Fix quadruple backslashes to double (\\\\mathbf -> \\mathbf)
+    .replace(/\\\\\\\\([a-zA-Z])/g, '\\\\$1')
+    // Fix triple backslashes to single for LaTeX commands  
+    .replace(/\\\\\\([a-zA-Z])/g, '\\$1')
+    // Fix escaped braces that are over-escaped
+    .replace(/\\\\\\{/g, '\\{')
+    .replace(/\\\\\\}/g, '\\}')
+    // Fix common LaTeX issues - ensure $$ blocks have proper newlines
+    .replace(/\$\$([^\$]+)\$\$/g, (match, content) => {
+      // Clean up the content inside $$ blocks
+      return '\n$$\n' + content.trim() + '\n$$\n';
+    });
+
   // Extract resources from content
-  const resources = parseResources(content);
+  const resources = parseResources(fixedContent);
   
   // Remove :::resources block from content for markdown parsing
-  let processedContent = content.replace(/:::resources[\s\S]*?:::/g, '');
+  let processedContent = fixedContent.replace(/:::resources[\s\S]*?:::/g, '');
   
-  // Process custom callout blocks into HTML comments for later parsing
+  // Process custom callout blocks - extract them and replace with unique markers
   const calloutRegex = /:::(info|tip|warning|success)\n([\s\S]*?):::/g;
-  const callouts: { type: string; content: string; placeholder: string }[] = [];
+  const callouts: { type: string; content: string; id: string }[] = [];
   
   processedContent = processedContent.replace(calloutRegex, (match, type, innerContent) => {
-    const placeholder = `<!--CALLOUT_${callouts.length}-->`;
-    callouts.push({ type, content: innerContent.trim(), placeholder });
-    return placeholder;
+    const id = `CALLOUT_MARKER_${callouts.length}`;
+    callouts.push({ type, content: innerContent.trim(), id });
+    // Return a paragraph marker that we can intercept
+    return `\n\n${id}\n\n`;
   });
+
+  // Remove any leftover comment markers like <!--CALLOUT_0-->
+  processedContent = processedContent.replace(/<!--CALLOUT_\d+-->/g, '');
 
   return (
     <div className={cn("markdown-content", className)}>
@@ -227,9 +247,10 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
               const match = /language-(\w+)/.exec(className || "");
               const codeString = String(children).replace(/\n$/, "");
               
-              // Check if this is a callout placeholder
-              if (codeString.startsWith("<!--CALLOUT_")) {
-                const idx = parseInt(codeString.match(/<!--CALLOUT_(\d+)-->/)?.[1] || "0");
+              // Check if this is a callout marker
+              const calloutMatch = codeString.match(/^CALLOUT_MARKER_(\d+)$/);
+              if (calloutMatch) {
+                const idx = parseInt(calloutMatch[1]);
                 const callout = callouts[idx];
                 if (callout) {
                   return <Callout type={callout.type}>{callout.content}</Callout>;
@@ -238,6 +259,12 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
               
               if (!inline && match) {
                 return <CodeBlock language={match[1]}>{codeString}</CodeBlock>;
+              }
+              
+              // For inline code or code without a language
+              if (!inline && codeString.includes('\n')) {
+                // Multi-line code without language - treat as code block
+                return <CodeBlock language="text">{codeString}</CodeBlock>;
               }
               
               return (
@@ -250,11 +277,12 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
               );
             },
             
-            // Check for callout placeholders in paragraphs
+            // Check for callout markers in paragraphs
             p({ children, ...props }: any) {
               const text = String(children);
-              if (text.startsWith("<!--CALLOUT_")) {
-                const idx = parseInt(text.match(/<!--CALLOUT_(\d+)-->/)?.[1] || "0");
+              const calloutMatch = text.match(/^CALLOUT_MARKER_(\d+)$/);
+              if (calloutMatch) {
+                const idx = parseInt(calloutMatch[1]);
                 const callout = callouts[idx];
                 if (callout) {
                   return <Callout type={callout.type}>{callout.content}</Callout>;

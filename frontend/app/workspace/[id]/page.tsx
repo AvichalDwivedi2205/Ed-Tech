@@ -1,20 +1,20 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookOpen, FileText, Layers, HelpCircle, Database, Plus } from "lucide-react";
+import { ArrowLeft, BookOpen, FileText, Layers, HelpCircle, Database, Plus, Upload, Loader2, Sparkles, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ConvexStatus } from "@/components/ConvexStatus";
 import { GenerateRoadmapDialog } from "@/components/workspace/GenerateRoadmapDialog";
 import { MiniDrona } from "@/components/ai/MiniDrona";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 
 function WorkspacePage() {
   const params = useParams();
@@ -177,11 +177,11 @@ function WorkspacePage() {
           </TabsContent>
 
           <TabsContent value="flashcards">
-            <FlashcardsTab flashcards={flashcards || []} workspaceId={workspaceId} />
+            <FlashcardsTab flashcards={flashcards || []} workspaceId={workspaceId} content={content || []} />
           </TabsContent>
 
           <TabsContent value="quizzes">
-            <QuizzesTab quizzes={quizzes || []} workspaceId={workspaceId} />
+            <QuizzesTab quizzes={quizzes || []} workspaceId={workspaceId} content={content || []} />
           </TabsContent>
 
           <TabsContent value="documents">
@@ -366,74 +366,240 @@ function ContentTab({ content, workspaceId }: { content: any[]; workspaceId: Id<
   );
 }
 
-function FlashcardsTab({ flashcards, workspaceId }: { flashcards: any[]; workspaceId: Id<"workspaces"> }) {
-  if (flashcards.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <BookOpen className="mx-auto h-12 w-12 text-slate-400" />
-          <h3 className="mt-4 text-lg font-semibold">No flashcards yet</h3>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            Generate flashcards from content
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
+function FlashcardsTab({ flashcards, workspaceId, content }: { flashcards: any[]; workspaceId: Id<"workspaces">; content: any[] }) {
+  const router = useRouter();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedContentId, setSelectedContentId] = useState<string>("");
+  const generateFlashcards = useAction(api.actions.flashcard.generate);
+
+  const handleGenerate = async () => {
+    if (!selectedContentId || isGenerating) return;
+    
+    const selectedContent = content.find(c => c._id === selectedContentId);
+    if (!selectedContent) return;
+    
+    setIsGenerating(true);
+    try {
+      const result = await generateFlashcards({
+        workspaceId,
+        subtopicId: selectedContent.subtopicId,
+        contentId: selectedContentId as Id<"content">,
+        topicName: selectedContent.subtopicName || selectedContent.subtopicId,
+      });
+      
+      if (result?.flashcardId) {
+        router.push(`/workspace/${workspaceId}/flashcards/${result.flashcardId}`);
+      }
+    } catch (error: any) {
+      console.error("Failed to generate flashcards:", error);
+      alert(`Failed to generate flashcards: ${error.message}`);
+    } finally {
+      setIsGenerating(false);
+      setSelectedContentId("");
+    }
+  };
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {flashcards.map((flashcard) => (
-        <Card key={flashcard._id} className="cursor-pointer hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <CardTitle>Flashcards: {flashcard.subtopicId}</CardTitle>
-            <CardDescription>
-              Created {new Date(flashcard.createdAt).toLocaleDateString()}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href={`/workspace/${workspaceId}/flashcards/${flashcard._id}`}>
-              <Button variant="outline" className="w-full">Study Flashcards</Button>
-            </Link>
+    <div className="space-y-6">
+      {/* Generate Flashcards Section */}
+      {content.length > 0 && (
+        <Card className="border-dashed border-2 border-blue-200 bg-blue-50/50 dark:border-blue-800/50 dark:bg-blue-900/20">
+          <CardContent className="py-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex-1">
+                <h3 className="font-semibold text-blue-900 dark:text-blue-100">Generate New Flashcards</h3>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                  Select content to create flashcards from
+                </p>
+              </div>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <select
+                  value={selectedContentId}
+                  onChange={(e) => setSelectedContentId(e.target.value)}
+                  className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-800 text-sm"
+                  disabled={isGenerating}
+                >
+                  <option value="">Select content...</option>
+                  {content.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.subtopicName || c.subtopicId}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  onClick={handleGenerate}
+                  disabled={!selectedContentId || isGenerating}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Generate
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      ))}
+      )}
+
+      {flashcards.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <BookOpen className="mx-auto h-12 w-12 text-slate-400" />
+            <h3 className="mt-4 text-lg font-semibold">No flashcards yet</h3>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+              {content.length > 0 
+                ? "Select content above and click Generate to create flashcards"
+                : "Generate content first, then create flashcards"
+              }
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {flashcards.map((flashcard) => (
+            <Card key={flashcard._id} className="cursor-pointer hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle>Flashcards: {flashcard.subtopicId}</CardTitle>
+                <CardDescription>
+                  Created {new Date(flashcard.createdAt).toLocaleDateString()}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href={`/workspace/${workspaceId}/flashcards/${flashcard._id}`}>
+                  <Button variant="outline" className="w-full">Study Flashcards</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function QuizzesTab({ quizzes, workspaceId }: { quizzes: any[]; workspaceId: Id<"workspaces"> }) {
-  if (quizzes.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <HelpCircle className="mx-auto h-12 w-12 text-slate-400" />
-          <h3 className="mt-4 text-lg font-semibold">No quizzes yet</h3>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            Generate quizzes from content
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
+function QuizzesTab({ quizzes, workspaceId, content }: { quizzes: any[]; workspaceId: Id<"workspaces">; content: any[] }) {
+  const router = useRouter();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedContentId, setSelectedContentId] = useState<string>("");
+  const generateQuiz = useAction(api.actions.quiz.generate);
+
+  const handleGenerate = async () => {
+    if (!selectedContentId || isGenerating) return;
+    
+    const selectedContent = content.find(c => c._id === selectedContentId);
+    if (!selectedContent) return;
+    
+    setIsGenerating(true);
+    try {
+      const result = await generateQuiz({
+        workspaceId,
+        subtopicId: selectedContent.subtopicId,
+        contentId: selectedContentId as Id<"content">,
+        topicName: selectedContent.subtopicName || selectedContent.subtopicId,
+      });
+      
+      if (result?.quizId) {
+        router.push(`/workspace/${workspaceId}/quizzes/${result.quizId}`);
+      }
+    } catch (error: any) {
+      console.error("Failed to generate quiz:", error);
+      alert(`Failed to generate quiz: ${error.message}`);
+    } finally {
+      setIsGenerating(false);
+      setSelectedContentId("");
+    }
+  };
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {quizzes.map((quiz) => (
-        <Card key={quiz._id} className="cursor-pointer hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <CardTitle>Quiz: {quiz.subtopicId}</CardTitle>
-            <CardDescription>
-              Created {new Date(quiz.createdAt).toLocaleDateString()}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href={`/workspace/${workspaceId}/quizzes/${quiz._id}`}>
-              <Button variant="outline" className="w-full">Take Quiz</Button>
-            </Link>
+    <div className="space-y-6">
+      {/* Generate Quiz Section */}
+      {content.length > 0 && (
+        <Card className="border-dashed border-2 border-purple-200 bg-purple-50/50 dark:border-purple-800/50 dark:bg-purple-900/20">
+          <CardContent className="py-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex-1">
+                <h3 className="font-semibold text-purple-900 dark:text-purple-100">Generate New Quiz</h3>
+                <p className="text-sm text-purple-700 dark:text-purple-300 mt-1">
+                  Select content to create a quiz from
+                </p>
+              </div>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <select
+                  value={selectedContentId}
+                  onChange={(e) => setSelectedContentId(e.target.value)}
+                  className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-purple-300 dark:border-purple-700 bg-white dark:bg-slate-800 text-sm"
+                  disabled={isGenerating}
+                >
+                  <option value="">Select content...</option>
+                  {content.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.subtopicName || c.subtopicId}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  onClick={handleGenerate}
+                  disabled={!selectedContentId || isGenerating}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Generate
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      ))}
+      )}
+
+      {quizzes.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <HelpCircle className="mx-auto h-12 w-12 text-slate-400" />
+            <h3 className="mt-4 text-lg font-semibold">No quizzes yet</h3>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+              {content.length > 0 
+                ? "Select content above and click Generate to create a quiz"
+                : "Generate content first, then create quizzes"
+              }
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {quizzes.map((quiz) => (
+            <Card key={quiz._id} className="cursor-pointer hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle>Quiz: {quiz.subtopicId}</CardTitle>
+                <CardDescription>
+                  Created {new Date(quiz.createdAt).toLocaleDateString()}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href={`/workspace/${workspaceId}/quizzes/${quiz._id}`}>
+                  <Button variant="outline" className="w-full">Take Quiz</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -442,6 +608,111 @@ function DocumentsTab({ workspaceId }: { workspaceId: Id<"workspaces"> }) {
   const documents = useQuery(api.queries.rag.listDocumentsByWorkspace, {
     workspaceId,
   });
+  const getUploadUrl = useMutation(api.mutations.storage.uploadFile);
+  const ingestFromStorage = useAction(api.actions.rag.ingestFromStorage);
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>("");
+  const [ragNamespace, setRagNamespace] = useState("general");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const processFile = async (file: File) => {
+    // Validate file type
+    const validTypes = [".pdf", ".png", ".jpg", ".jpeg", ".webp", ".txt", ".md"];
+    const fileExt = file.name.toLowerCase().substring(file.name.lastIndexOf("."));
+    if (!validTypes.includes(fileExt)) {
+      alert("Please upload a PDF, image, or text file (.pdf, .png, .jpg, .jpeg, .webp, .txt, .md)");
+      return;
+    }
+
+    // Validate file size (max 50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      alert("File size must be less than 50MB");
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(`Uploading ${file.name}...`);
+
+    try {
+      // Get upload URL from Convex
+      const uploadUrl = await getUploadUrl();
+      
+      if (!uploadUrl) {
+        throw new Error("Failed to get upload URL from Convex. Make sure Convex dev server is running.");
+      }
+      
+      // Upload file to Convex Storage
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        throw new Error(`Upload failed: ${uploadResponse.status} ${errorText}`);
+      }
+
+      // Extract storage ID from response
+      const storageIdJson = await uploadResponse.json();
+      const storageId = storageIdJson.storageId as Id<"_storage">;
+
+      if (!storageId) {
+        throw new Error("No storage ID returned from upload");
+      }
+
+      setUploadProgress(`Processing ${file.name}...`);
+
+      // Ingest the document
+      await ingestFromStorage({
+        workspaceId,
+        storageId,
+        ragNamespace,
+        title: file.name,
+      });
+
+      setUploadProgress("");
+    } catch (error: any) {
+      console.error("Failed to upload file:", error);
+      alert(`Failed to upload file: ${error.message}`);
+    } finally {
+      setIsUploading(false);
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    for (const file of files) {
+      await processFile(file);
+    }
+  }, [ragNamespace, workspaceId]);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    for (const file of files) {
+      await processFile(file);
+    }
+    // Reset the input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   if (documents === undefined) {
     return (
@@ -453,52 +724,126 @@ function DocumentsTab({ workspaceId }: { workspaceId: Id<"workspaces"> }) {
     );
   }
 
-  if (documents.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <Database className="mx-auto h-12 w-12 text-slate-400" />
-          <h3 className="mt-4 text-lg font-semibold">No documents indexed</h3>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            Upload documents to use RAG for content generation
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <div className="space-y-4">
-      {documents.map((doc: any) => (
-        <Card key={doc._id}>
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle>{doc.title}</CardTitle>
-                <CardDescription>
-                  {doc.pageCount} pages • {doc.ragNamespace}
-                </CardDescription>
+    <div className="space-y-6">
+      {/* Upload Area */}
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`
+          relative rounded-2xl border-2 border-dashed p-8 text-center transition-all
+          ${isDragging 
+            ? "border-blue-500 bg-blue-50/50 dark:border-blue-400 dark:bg-blue-900/20" 
+            : "border-slate-300 hover:border-slate-400 dark:border-slate-700 dark:hover:border-slate-600"
+          }
+          ${isUploading ? "pointer-events-none opacity-60" : ""}
+        `}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md"
+          multiple
+          onChange={handleFileSelect}
+          disabled={isUploading}
+          className="hidden"
+          id="document-upload"
+        />
+        
+        <div className="flex flex-col items-center gap-4">
+          {isUploading ? (
+            <>
+              <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+              <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                {uploadProgress}
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+                <Upload className="h-8 w-8 text-slate-400" />
               </div>
-              <span
-                className={`rounded-full px-2 py-1 text-xs font-medium ${
-                  doc.status === "indexed"
-                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                    : doc.status === "pending"
-                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                    : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                }`}
-              >
-                {doc.status}
-              </span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              Indexed {new Date(doc.createdAt).toLocaleDateString()}
+              <div>
+                <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">
+                  {isDragging ? "Drop files here" : "Drag & drop files here"}
+                </p>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  or click to browse • PDF, images, text files up to 50MB (max 500 pages)
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-slate-600 dark:text-slate-400">Namespace:</label>
+                  <input
+                    type="text"
+                    value={ragNamespace}
+                    onChange={(e) => setRagNamespace(e.target.value)}
+                    className="w-32 rounded-lg border border-slate-300 px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-800"
+                    placeholder="general"
+                  />
+                </div>
+                <label
+                  htmlFor="document-upload"
+                  className="cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                >
+                  <Upload className="inline-block mr-2 h-4 w-4" />
+                  Upload Files
+                </label>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Documents List */}
+      {documents.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Database className="mx-auto h-12 w-12 text-slate-400" />
+            <h3 className="mt-4 text-lg font-semibold">No documents indexed</h3>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+              Upload documents above to use RAG for content generation
             </p>
           </CardContent>
         </Card>
-      ))}
+      ) : (
+        <div className="space-y-4">
+          {documents.map((doc: any) => (
+            <Card key={doc._id}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle>{doc.title}</CardTitle>
+                    <CardDescription>
+                      {doc.pageCount} pages • {doc.ragNamespace}
+                    </CardDescription>
+                  </div>
+                  <span
+                    className={`rounded-full px-2 py-1 text-xs font-medium ${
+                      doc.status === "indexed"
+                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                        : doc.status === "pending"
+                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                        : doc.status === "skipped_page_limit"
+                        ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                        : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                    }`}
+                  >
+                    {doc.status === "skipped_page_limit" ? "Too Large" : doc.status}
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Indexed {new Date(doc.createdAt).toLocaleDateString()}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

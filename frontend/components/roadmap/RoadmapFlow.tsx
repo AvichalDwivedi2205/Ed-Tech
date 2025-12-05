@@ -5,7 +5,9 @@ import { useQuery, useAction } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { RoadmapNode } from "./RoadmapNode";
-import { LayoutGrid, ArrowDown, Sparkles, Loader2, CheckCircle2, FastForward } from "lucide-react";
+import { LayoutGrid, ArrowDown, Sparkles, Loader2, CheckCircle2, FastForward, Globe, Database, Settings, ChevronDown } from "lucide-react";
+
+type ContentSource = "web" | "rag" | "both";
 
 interface RoadmapFlowProps {
   roadmapData: any;
@@ -16,6 +18,8 @@ interface RoadmapFlowProps {
 export function RoadmapFlow({ roadmapData, workspaceId, roadmapId }: RoadmapFlowProps) {
   const [isGeneratingNext, setIsGeneratingNext] = useState(false);
   const [generatingTopicId, setGeneratingTopicId] = useState<string | null>(null);
+  const [contentSource, setContentSource] = useState<ContentSource>("web");
+  const [showSourceOptions, setShowSourceOptions] = useState(false);
 
   // Content generation action
   const generateContent = useAction(api.actions.content.generate);
@@ -25,6 +29,13 @@ export function RoadmapFlow({ roadmapData, workspaceId, roadmapId }: RoadmapFlow
     api.queries.content.listContent,
     workspaceId ? { workspaceId } : "skip"
   );
+
+  // Check if there are indexed documents for RAG
+  const documents = useQuery(
+    api.queries.rag.listDocumentsByWorkspace,
+    workspaceId ? { workspaceId } : "skip"
+  );
+  const hasIndexedDocuments = documents && documents.length > 0;
 
   // Extract topics
   const topics = useMemo(() => {
@@ -84,6 +95,7 @@ export function RoadmapFlow({ roadmapData, workspaceId, roadmapId }: RoadmapFlow
 
     setIsGeneratingNext(true);
     setGeneratingTopicId(nextTopicToGenerate.id);
+    setShowSourceOptions(false);
 
     try {
       await generateContent({
@@ -91,8 +103,8 @@ export function RoadmapFlow({ roadmapData, workspaceId, roadmapId }: RoadmapFlow
         roadmapId,
         subtopicId: nextTopicToGenerate.id,
         settings: {
-          useRag: false,
-          useWebSearch: true,
+          useRag: contentSource === "rag" || contentSource === "both",
+          useWebSearch: contentSource === "web" || contentSource === "both",
         },
       });
     } catch (err) {
@@ -100,6 +112,22 @@ export function RoadmapFlow({ roadmapData, workspaceId, roadmapId }: RoadmapFlow
     } finally {
       setIsGeneratingNext(false);
       setGeneratingTopicId(null);
+    }
+  };
+
+  const getSourceLabel = (source: ContentSource) => {
+    switch (source) {
+      case "web": return "Web Search";
+      case "rag": return "Your Documents";
+      case "both": return "Both Sources";
+    }
+  };
+
+  const getSourceIcon = (source: ContentSource) => {
+    switch (source) {
+      case "web": return <Globe className="h-4 w-4" />;
+      case "rag": return <Database className="h-4 w-4" />;
+      case "both": return <Settings className="h-4 w-4" />;
     }
   };
 
@@ -139,25 +167,72 @@ export function RoadmapFlow({ roadmapData, workspaceId, roadmapId }: RoadmapFlow
           )}
         </div>
 
-        {/* Generate Next Button */}
+        {/* Generate Next Section with Source Selection */}
         {workspaceId && nextTopicToGenerate && (
-          <button
-            onClick={handleGenerateNext}
-            disabled={isGeneratingNext}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:from-purple-700 hover:to-blue-700 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {isGeneratingNext ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Generating...</span>
-              </>
-            ) : (
-              <>
-                <FastForward className="h-4 w-4" />
-                <span>Generate Next: {nextTopicToGenerate.topicName.substring(0, 20)}{nextTopicToGenerate.topicName.length > 20 ? '...' : ''}</span>
-              </>
-            )}
-          </button>
+          <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+            {/* Source Selection Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowSourceOptions(!showSourceOptions)}
+                disabled={isGeneratingNext}
+                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              >
+                {getSourceIcon(contentSource)}
+                <span>{getSourceLabel(contentSource)}</span>
+                <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${showSourceOptions ? "rotate-180" : ""}`} />
+              </button>
+              
+              {showSourceOptions && (
+                <div className="absolute right-0 top-full z-20 mt-1 min-w-[180px] rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-600 dark:bg-slate-700">
+                  <button
+                    onClick={() => { setContentSource("web"); setShowSourceOptions(false); }}
+                    className={`flex w-full items-center gap-2 px-3 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-600 ${contentSource === "web" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" : "text-slate-700 dark:text-slate-200"}`}
+                  >
+                    <Globe className="h-4 w-4" />
+                    <span>Web Search Only</span>
+                    <span className="ml-auto text-xs text-slate-400">Default</span>
+                  </button>
+                  <button
+                    onClick={() => { setContentSource("rag"); setShowSourceOptions(false); }}
+                    disabled={!hasIndexedDocuments}
+                    className={`flex w-full items-center gap-2 px-3 py-2.5 text-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-slate-600 ${contentSource === "rag" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" : "text-slate-700 dark:text-slate-200"}`}
+                  >
+                    <Database className="h-4 w-4" />
+                    <span>Your Documents</span>
+                    {!hasIndexedDocuments && <span className="ml-auto text-xs text-amber-500">No docs</span>}
+                  </button>
+                  <button
+                    onClick={() => { setContentSource("both"); setShowSourceOptions(false); }}
+                    disabled={!hasIndexedDocuments}
+                    className={`flex w-full items-center gap-2 px-3 py-2.5 text-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-slate-600 ${contentSource === "both" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" : "text-slate-700 dark:text-slate-200"}`}
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span>Both Sources</span>
+                    {!hasIndexedDocuments && <span className="ml-auto text-xs text-amber-500">No docs</span>}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Generate Button */}
+            <button
+              onClick={handleGenerateNext}
+              disabled={isGeneratingNext}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:from-purple-700 hover:to-blue-700 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isGeneratingNext ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <FastForward className="h-4 w-4" />
+                  <span>Generate Next: {nextTopicToGenerate.topicName.substring(0, 20)}{nextTopicToGenerate.topicName.length > 20 ? '...' : ''}</span>
+                </>
+              )}
+            </button>
+          </div>
         )}
 
         {/* All Complete Badge */}
@@ -171,27 +246,34 @@ export function RoadmapFlow({ roadmapData, workspaceId, roadmapId }: RoadmapFlow
 
       {/* Flowchart - Simple vertical list with connectors */}
       <div className="flex flex-col items-center gap-0">
-        {topicData.map((data, index) => (
-          <div key={data.id} className="flex flex-col items-center w-full max-w-2xl">
-            {/* Topic Card */}
-            <div className="w-full">
-              <RoadmapNode 
-                data={data}
-                topicId={data.id}
-                workspaceId={workspaceId}
-                roadmapId={roadmapId}
-              />
-            </div>
-            
-            {/* Connector Arrow (not on last item) */}
-            {index < topicData.length - 1 && (
-              <div className="flex flex-col items-center py-3">
-                <div className="h-8 w-0.5 bg-gradient-to-b from-purple-500 to-purple-400 dark:from-purple-400 dark:to-purple-500" />
-                <ArrowDown className="h-5 w-5 text-purple-500 dark:text-purple-400 -mt-1" />
+        {topicData.map((data, index) => {
+          const isNext = nextTopicToGenerate?.id === data.id;
+          const isCurrentlyGenerating = isGeneratingNext && generatingTopicId === data.id;
+          
+          return (
+            <div key={data.id} className="flex flex-col items-center w-full max-w-2xl">
+              {/* Topic Card */}
+              <div className="w-full">
+                <RoadmapNode 
+                  data={data}
+                  topicId={data.id}
+                  workspaceId={workspaceId}
+                  roadmapId={roadmapId}
+                  isNextToGenerate={isNext}
+                  isGenerating={isCurrentlyGenerating}
+                />
               </div>
-            )}
-          </div>
-        ))}
+              
+              {/* Connector Arrow (not on last item) */}
+              {index < topicData.length - 1 && (
+                <div className="flex flex-col items-center py-3">
+                  <div className="h-8 w-0.5 bg-gradient-to-b from-purple-500 to-purple-400 dark:from-purple-400 dark:to-purple-500" />
+                  <ArrowDown className="h-5 w-5 text-purple-500 dark:text-purple-400 -mt-1" />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
       
       {/* Completion indicator */}

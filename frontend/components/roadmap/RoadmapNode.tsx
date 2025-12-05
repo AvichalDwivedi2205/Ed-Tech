@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useAction } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import Link from "next/link";
@@ -15,12 +15,9 @@ import {
   Clock, 
   Target, 
   ListChecks,
-  Sparkles,
-  Loader2,
   CheckCircle2,
-  AlertCircle,
   Eye,
-  RefreshCw
+  Circle
 } from "lucide-react";
 
 interface RoadmapNodeProps {
@@ -37,9 +34,11 @@ interface RoadmapNodeProps {
   topicId?: string;
   workspaceId?: Id<"workspaces">;
   roadmapId?: Id<"roadmaps">;
+  isNextToGenerate?: boolean;
+  isGenerating?: boolean;
 }
 
-export function RoadmapNode({ data, topicId, workspaceId, roadmapId }: RoadmapNodeProps) {
+export function RoadmapNode({ data, topicId, workspaceId, roadmapId, isNextToGenerate, isGenerating }: RoadmapNodeProps) {
   const [expandedSections, setExpandedSections] = useState<{
     videos: boolean;
     blogs: boolean;
@@ -52,10 +51,6 @@ export function RoadmapNode({ data, topicId, workspaceId, roadmapId }: RoadmapNo
     subtopics: false,
   });
 
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [justGenerated, setJustGenerated] = useState(false);
-
   // Query existing content for this topic
   const existingContent = useQuery(
     api.queries.content.getContentBySubtopic,
@@ -64,44 +59,11 @@ export function RoadmapNode({ data, topicId, workspaceId, roadmapId }: RoadmapNo
       : "skip"
   );
 
-  // Content generation action
-  const generateContent = useAction(api.actions.content.generate);
-
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
-  };
-
-  const handleGenerateContent = async () => {
-    if (!workspaceId || !topicId) {
-      setError("Missing workspace or topic information");
-      return;
-    }
-
-    setIsGenerating(true);
-    setError(null);
-
-    try {
-      await generateContent({
-        workspaceId,
-        roadmapId,
-        subtopicId: topicId,
-        settings: {
-          useRag: false,
-          useWebSearch: true,
-        },
-      });
-      setJustGenerated(true);
-      // Clear the just generated state after a few seconds
-      setTimeout(() => setJustGenerated(false), 3000);
-    } catch (err: any) {
-      console.error("Content generation failed:", err);
-      setError(err.message || "Failed to generate content. Please try again.");
-    } finally {
-      setIsGenerating(false);
-    }
   };
 
   const videoCount = data.videos?.length || 0;
@@ -110,22 +72,27 @@ export function RoadmapNode({ data, topicId, workspaceId, roadmapId }: RoadmapNo
   const subtopicCount = data.subtopics?.length || 0;
 
   const hasContent = !!existingContent;
-  const canGenerate = workspaceId && topicId && !hasContent && !isGenerating;
 
   return (
     <div
       className={`group relative rounded-2xl border-2 bg-white shadow-lg transition-all duration-300 hover:shadow-xl dark:bg-slate-800 ${
         hasContent 
           ? "border-green-300 dark:border-green-600" 
-          : "border-slate-200 hover:border-blue-400 dark:border-slate-600 dark:hover:border-blue-500"
+          : isNextToGenerate
+            ? "border-purple-400 ring-2 ring-purple-200 dark:border-purple-500 dark:ring-purple-800"
+            : "border-slate-200 dark:border-slate-600"
       }`}
     >
       {/* Content Status Badge */}
-      {hasContent && (
+      {hasContent ? (
         <div className="absolute -right-2 -top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-green-500 shadow-lg">
           <CheckCircle2 className="h-4 w-4 text-white" />
         </div>
-      )}
+      ) : isNextToGenerate ? (
+        <div className="absolute -right-2 -top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-purple-500 shadow-lg animate-pulse">
+          <Circle className="h-4 w-4 text-white" />
+        </div>
+      ) : null}
 
       {/* Header with Gradient */}
       <div className="relative overflow-hidden rounded-t-xl border-b border-slate-100 bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 p-4 dark:border-slate-700">
@@ -184,56 +151,10 @@ export function RoadmapNode({ data, topicId, workspaceId, roadmapId }: RoadmapNo
         )}
       </div>
 
-      {/* Content Generation Section */}
+      {/* Content Status Section */}
       {workspaceId && topicId && (
         <div className="border-b border-slate-100 bg-gradient-to-r from-purple-50/50 to-blue-50/50 px-3 py-3 dark:border-slate-700 dark:from-purple-900/20 dark:to-blue-900/20">
-          {isGenerating ? (
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/40">
-                <Loader2 className="h-4 w-4 animate-spin text-purple-600 dark:text-purple-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                  Generating content...
-                </p>
-                <p className="text-xs text-purple-600/70 dark:text-purple-400/70">
-                  This may take a minute
-                </p>
-              </div>
-            </div>
-          ) : error ? (
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/40">
-                <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-red-700 dark:text-red-300">
-                  Generation failed
-                </p>
-                <p className="text-xs text-red-600/70 dark:text-red-400/70 line-clamp-1">
-                  {error}
-                </p>
-              </div>
-              <button
-                onClick={handleGenerateContent}
-                className="flex items-center gap-1.5 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60"
-              >
-                <RefreshCw className="h-3 w-3" />
-                Retry
-              </button>
-            </div>
-          ) : justGenerated ? (
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40">
-                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-green-700 dark:text-green-300">
-                  Content generated successfully!
-                </p>
-              </div>
-            </div>
-          ) : hasContent ? (
+          {hasContent ? (
             <div className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40">
                 <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -254,15 +175,34 @@ export function RoadmapNode({ data, topicId, workspaceId, roadmapId }: RoadmapNo
                 View Content
               </Link>
             </div>
+          ) : isNextToGenerate ? (
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/40">
+                <Circle className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                  {isGenerating ? "Generating content..." : "Next up"}
+                </p>
+                <p className="text-xs text-purple-600/70 dark:text-purple-400/70">
+                  {isGenerating ? "This may take a minute" : "Use the button above to generate"}
+                </p>
+              </div>
+            </div>
           ) : (
-            <button
-              onClick={handleGenerateContent}
-              disabled={!canGenerate}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:from-purple-700 hover:to-blue-700 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Sparkles className="h-4 w-4" />
-              Generate Content
-            </button>
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-700">
+                <Circle className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                  Pending
+                </p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  Generate previous topics first
+                </p>
+              </div>
+            </div>
           )}
         </div>
       )}

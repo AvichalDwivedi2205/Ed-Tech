@@ -10,6 +10,7 @@ import { AgentResponse, ContentGenerationSettings, SlideContent, SlideType } fro
 // Removed renderMarkdownToHtml import - no longer needed for Convex integration
 import { RAGService } from "../services/rag_service";
 import { getConvexClient, getWorkspaceId } from "../utils/convex_client";
+import { repairJsonWithLatex } from "../utils/json_repair";
 
 // Define the state
 export const ContentAgentState = Annotation.Root({
@@ -146,12 +147,21 @@ export class ContentCreatorAgent {
         const roadmapJson = state.roadmap_json;
         const keys = Object.keys(roadmapJson);
         const completed = state.completed_subtopics || [];
+        const targetSubtopicId = state.current_subtopic_id; // If a specific subtopic was requested
 
         // Filter out completed subtopics - completed list should be provided externally
-        const pendingSubtopics = keys.filter(key => {
+        let pendingSubtopics = keys.filter(key => {
             const val = roadmapJson[key];
             return typeof val === 'object' && val !== null && val.TopicName && !completed.includes(key);
         });
+
+        // If a specific subtopic was requested, only process that one
+        if (targetSubtopicId && pendingSubtopics.includes(targetSubtopicId)) {
+            console.log(`Generating content for specific subtopic: ${targetSubtopicId}`);
+            pendingSubtopics = [targetSubtopicId];
+        } else if (targetSubtopicId) {
+            console.log(`Requested subtopic ${targetSubtopicId} not found in pending list. Using first available.`);
+        }
 
         console.log(`Found ${pendingSubtopics.length} pending subtopics.`);
         if (completed.length > 0) {
@@ -269,19 +279,23 @@ export class ContentCreatorAgent {
             The content will be presented as lecture slides, so structure for clear, focused sections.
             
             Generate a JSON array of section objects. Each object should have:
-            - "title": Section title (concise)
-            - "description": Brief description of what to cover
-            - "slideCount": Number of slides needed (2-4 slides per section)
+            - "title": Section title (concise but descriptive)
+            - "description": Detailed description of what to cover (include key concepts, formulas, examples needed)
+            - "slideCount": Number of slides needed (3-5 slides per section for rich content)
             
             Example:
             [
-                { "title": "Introduction", "description": "Overview and key concepts", "slideCount": 2 },
-                { "title": "Core Principles", "description": "Fundamental concepts explained", "slideCount": 3 },
-                ...
+                { "title": "Introduction & Foundations", "description": "Overview of the topic, motivation, and prerequisite concepts. Cover definitions, historical context, and why this matters.", "slideCount": 3 },
+                { "title": "Core Principles & Theory", "description": "Fundamental concepts with mathematical foundations. Include key theorems, formulas, and visual representations.", "slideCount": 4 },
+                { "title": "Practical Implementation", "description": "Hands-on examples with code. Show step-by-step implementation with Python/NumPy examples.", "slideCount": 4 },
+                { "title": "Advanced Applications", "description": "Real-world use cases and advanced techniques. Show how concepts apply to actual ML problems.", "slideCount": 3 },
+                { "title": "Practice & Review", "description": "Practice problems, exercises, and key takeaways summary.", "slideCount": 3 }
             ]
             
-            Create 4-5 focused sections to ensure quality over quantity.
-            Each section should generate 2-4 slides (theory, example, practice question).
+            Create 5 comprehensive sections to ensure thorough coverage.
+            Each section should generate 3-5 slides (multiple theory slides, examples, and practice).
+            Total should be 15-20 slides for a complete module.
+            
             Output ONLY the JSON array. NO comments, NO explanations, NO markdown code blocks. Pure JSON only.`),
             new MessagesPlaceholder("messages")
         ]);
@@ -329,31 +343,44 @@ export class ContentCreatorAgent {
             Generate a JSON array of slides. Each slide should have:
             - "type": One of "theory", "example", "question", "exercise", or "summary"
             - "title": Slide title (concise, 5-10 words)
-            - "content": Markdown content for the slide (keep focused and digestible, 100-200 words per slide)
+            - "content": Rich Markdown content (aim for 200-400 words per slide with substantial explanations)
             
-            Generate ${section.slideCount || 3} slides for this section following this pattern:
-            1. First slide: "theory" - Explain the concept clearly
-            2. Middle slides: "example" - Show practical examples with code/diagrams if relevant
-            3. Last slide: "question" - Practice problem or review question
+            Generate ${section.slideCount || 4} slides for this section following this pattern:
+            1. First slide(s): "theory" - Explain concepts in depth with definitions, key points, and context
+            2. Middle slides: "example" - Show detailed practical examples with full code blocks and step-by-step explanations
+            3. Last slide: "question" or "exercise" - Include practice problems with hints or partial solutions
             
-            ### MARKDOWN FORMAT FOR SLIDES:
-            - Use headers: \`##\`, \`###\` (not \`#\` since slide title is separate)
-            - Lists: \`-\` or \`1.\`
-            - Math: \`$inline$\` or \`$$block$$\`
-            - Code: \`\`\`language ... \`\`\`
-            - Callouts: \`:::info\`, \`:::tip\`, \`:::warning\`
+            ### CONTENT REQUIREMENTS:
+            - Each slide MUST have substantial content (not just bullet points)
+            - Include explanatory paragraphs, not just lists
+            - Code examples must be COMPLETE and properly formatted with multiple lines
+            - Math equations should be properly formatted with $inline$ or $$block$$ LaTeX
+            - Use headers (##, ###) to organize content within slides
             
-            Example output:
+            ### MARKDOWN FORMAT:
+            - Headers: ## for main sections, ### for subsections (not # since slide title is separate)
+            - Bullet lists: Use - for items
+            - Numbered lists: Use 1. 2. 3.
+            - Math: Use $x^2$ for inline and $$\\sum_{i=1}^{n} x_i$$ for block math
+            - Code blocks: ALWAYS use triple backticks with language identifier
+              \`\`\`python
+              def function_name():
+                  # Multiple lines
+                  return value
+              \`\`\`
+            - Callouts: :::info, :::tip, :::warning followed by content and :::
+            
+            ### EXAMPLE OUTPUT:
             [
                 {
                     "type": "theory",
-                    "title": "Understanding Binary Search",
-                    "content": "## Key Concept\\n\\nBinary search is a divide-and-conquer algorithm...\\n\\n### Time Complexity\\n- Best: $O(1)$\\n- Average: $O(\\\\log n)$"
+                    "title": "Understanding Vectors in Machine Learning",
+                    "content": "## What is a Vector?\\n\\nA **vector** is a fundamental mathematical object used extensively in machine learning and data science. It represents a quantity with both magnitude and direction.\\n\\n### Mathematical Definition\\n\\nIn an $n$-dimensional space, a vector $\\\\mathbf{v}$ is defined as:\\n\\n$$\\\\mathbf{v} = \\\\begin{pmatrix} v_1 \\\\\\\\ v_2 \\\\\\\\ \\\\vdots \\\\\\\\ v_n \\\\end{pmatrix}$$\\n\\n### Key Properties\\n\\n- **Dimension**: The number of elements in the vector\\n- **Magnitude**: $||\\\\mathbf{v}|| = \\\\sqrt{\\\\sum_{i=1}^{n} v_i^2}$\\n- **Direction**: Determined by the ratio of components\\n\\n:::info\\nVectors are the building blocks for representing data points in ML. Each feature becomes a dimension in the vector space.\\n:::"
                 },
                 {
                     "type": "example", 
-                    "title": "Binary Search Implementation",
-                    "content": "## Python Example\\n\\n\`\`\`python\\ndef binary_search(arr, target):\\n    ...\\n\`\`\`"
+                    "title": "Vector Operations in Python",
+                    "content": "## Implementing Vector Operations\\n\\nLet's implement basic vector operations using NumPy:\\n\\n\`\`\`python\\nimport numpy as np\\n\\n# Define two vectors\\nv1 = np.array([1, 2, 3])\\nv2 = np.array([4, 5, 6])\\n\\n# Vector addition\\nsum_v = v1 + v2\\nprint(f\\"Vector Addition: {sum_v}\\")  # Output: [5 7 9]\\n\\n# Scalar multiplication\\nscaled = 2 * v1\\nprint(f\\"Scalar Multiplication: {scaled}\\")  # Output: [2 4 6]\\n\\n# Dot product\\ndot_product = np.dot(v1, v2)\\nprint(f\\"Dot Product: {dot_product}\\")  # Output: 32\\n\\n# Vector magnitude\\nmagnitude = np.linalg.norm(v1)\\nprint(f\\"Magnitude: {magnitude:.2f}\\")  # Output: 3.74\\n\`\`\`\\n\\n:::tip\\nAlways use NumPy for vector operations in Python - it's optimized for numerical computations and much faster than pure Python loops.\\n:::"
                 }
             ]
             
@@ -367,8 +394,12 @@ export class ContentCreatorAgent {
         let slidesData: { type: SlideType; title: string; content: string }[] = [];
         try {
             const content = (response as any).content;
-            const jsonContent = content.replace(/```json/g, "").replace(/```/g, "").trim();
-            slidesData = JSON.parse(jsonContent);
+            // Use repairJsonWithLatex for robust JSON parsing with LaTeX content
+            slidesData = repairJsonWithLatex(content);
+            // Ensure it's an array
+            if (!Array.isArray(slidesData)) {
+                throw new Error("Parsed result is not an array");
+            }
         } catch (e) {
             console.error("Failed to parse slides JSON", e);
             // Fallback to a single theory slide

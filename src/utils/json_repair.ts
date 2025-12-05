@@ -12,55 +12,43 @@ export function repairJsonWithLatex(text: string): any {
 
     cleanText = cleanText.trim();
 
-    // 3. Try parsing directly first
+    // 3. Try parsing directly first - if it works, don't modify anything!
     try {
         return JSON.parse(cleanText);
     } catch (e) {
         // console.log("Direct parse failed, attempting repair...");
     }
 
-    // 4. (Removed aggressive regex extraction to avoid discarding content)
-
-
-    // 4. Heuristic Repair Strategy
+    // 4. Heuristic Repair Strategy - character by character
+    // Only fix INVALID escape sequences, don't touch valid ones
     let fixedText = "";
     let i = 0;
     let inString = false;
-    let escapeNext = false;
 
     while (i < cleanText.length) {
         const char = cleanText[i];
 
-        if (escapeNext) {
-            // We're escaping the current character
-            fixedText += char;
-            escapeNext = false;
-            i++;
-            continue;
-        }
-
-        if (char === '"') {
+        if (char === '"' && (i === 0 || cleanText[i - 1] !== '\\')) {
             inString = !inString;
             fixedText += char;
             i++;
             continue;
         }
 
-        if (char === '\\') {
+        if (char === '\\' && inString) {
             // Check next character
             if (i + 1 < cleanText.length) {
                 const nextChar = cleanText[i + 1];
 
-                // If it's a valid escape char, leave it alone
+                // Valid JSON escape sequences - pass through as-is
                 if (['"', '\\', '/', 'b', 'f', 'n', 'r', 't'].includes(nextChar)) {
                     fixedText += char + nextChar;
                     i += 2;
                     continue;
                 }
 
-                // If it's 'u', check if it's a unicode sequence \uXXXX
+                // Unicode escape \uXXXX - pass through as-is
                 if (nextChar === 'u') {
-                    // Check if next 4 chars are hex
                     const potentialHex = cleanText.substring(i + 2, i + 6);
                     if (/^[0-9a-fA-F]{4}$/.test(potentialHex)) {
                         fixedText += char + nextChar + potentialHex;
@@ -69,13 +57,13 @@ export function repairJsonWithLatex(text: string): any {
                     }
                 }
 
-                // If we are here, it's an invalid escape sequence (likely LaTeX)
-                // Escape the backslash
+                // Invalid escape sequence - this is likely unescaped LaTeX
+                // Double the backslash to make it valid JSON
                 fixedText += "\\\\";
-                i++; // Don't consume nextChar yet, let loop handle it
+                i++; // Move past the backslash, let the next char be processed normally
                 continue;
             } else {
-                // Trailing backslash at end of string? Escape it.
+                // Trailing backslash at end - escape it
                 fixedText += "\\\\";
                 i++;
                 continue;
@@ -84,18 +72,25 @@ export function repairJsonWithLatex(text: string): any {
 
         // Handle control characters in strings
         if (inString) {
-            if (char === '\n') {
+            const charCode = char.charCodeAt(0);
+            if (charCode === 10) { // \n
                 fixedText += "\\n";
                 i++;
                 continue;
             }
-            if (char === '\r') {
+            if (charCode === 13) { // \r
                 fixedText += "\\r";
                 i++;
                 continue;
             }
-            if (char === '\t') {
+            if (charCode === 9) { // \t
                 fixedText += "\\t";
+                i++;
+                continue;
+            }
+            // Other control characters
+            if (charCode < 32) {
+                fixedText += "\\u" + charCode.toString(16).padStart(4, "0");
                 i++;
                 continue;
             }

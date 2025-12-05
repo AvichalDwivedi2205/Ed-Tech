@@ -1,31 +1,135 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useAction } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { MarkdownRenderer } from "@/components/content/MarkdownRenderer";
 import { SlideRenderer, SlideContent } from "@/components/content/SlideRenderer";
 import { MiniDrona } from "@/components/ai/MiniDrona";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookOpen, Calendar, Clock, GraduationCap, Layers, FileText } from "lucide-react";
+import { ArrowLeft, BookOpen, Calendar, Clock, GraduationCap, Layers, FileText, HelpCircle, Loader2, Sparkles, RefreshCw, Globe, Database, Settings, ChevronDown } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ConvexStatus } from "@/components/ConvexStatus";
 import Link from "next/link";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
+type ContentSource = "web" | "rag" | "both";
+
 export default function ContentPage() {
   const params = useParams();
+  const router = useRouter();
   const contentId = params.contentId as Id<"content">;
   const workspaceId = params.id as Id<"workspaces">;
   const [viewMode, setViewMode] = useState<"slides" | "full">("slides");
+  const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
+  const [isRegeneratingContent, setIsRegeneratingContent] = useState(false);
+  const [contentSource, setContentSource] = useState<ContentSource>("web");
+  const [showSourceOptions, setShowSourceOptions] = useState(false);
+
+  const generateFlashcards = useAction(api.actions.flashcard.generate);
+  const generateQuiz = useAction(api.actions.quiz.generate);
+  const generateContent = useAction(api.actions.content.generate);
 
   const content = useQuery(api.queries.content.getContent, {
     contentId,
   });
+
+  // Check if there are indexed documents for RAG
+  const documents = useQuery(
+    api.queries.rag.listDocumentsByWorkspace,
+    { workspaceId }
+  );
+  const hasIndexedDocuments = documents && documents.length > 0;
+
+  const handleRegenerateContent = async () => {
+    if (!content || isRegeneratingContent) return;
+    
+    setIsRegeneratingContent(true);
+    setShowSourceOptions(false);
+    try {
+      await generateContent({
+        workspaceId,
+        subtopicId: content.subtopicId,
+        settings: {
+          useRag: contentSource === "rag" || contentSource === "both",
+          useWebSearch: contentSource === "web" || contentSource === "both",
+        },
+      });
+      // Content will auto-refresh via the query
+    } catch (error: any) {
+      console.error("Failed to regenerate content:", error);
+      alert(`Failed to regenerate content: ${error.message}`);
+    } finally {
+      setIsRegeneratingContent(false);
+    }
+  };
+
+  const getSourceLabel = (source: ContentSource) => {
+    switch (source) {
+      case "web": return "Web Search";
+      case "rag": return "Your Documents";
+      case "both": return "Both Sources";
+    }
+  };
+
+  const getSourceIcon = (source: ContentSource) => {
+    switch (source) {
+      case "web": return <Globe className="h-4 w-4" />;
+      case "rag": return <Database className="h-4 w-4" />;
+      case "both": return <Settings className="h-4 w-4" />;
+    }
+  };
+
+  const handleGenerateFlashcards = async () => {
+    if (!content || isGeneratingFlashcards) return;
+    
+    setIsGeneratingFlashcards(true);
+    try {
+      const result = await generateFlashcards({
+        workspaceId,
+        subtopicId: content.subtopicId,
+        contentId,
+        topicName: content.subtopicName || content.subtopicId,
+      });
+      
+      if (result?.flashcardId) {
+        router.push(`/workspace/${workspaceId}/flashcards/${result.flashcardId}`);
+      }
+    } catch (error: any) {
+      console.error("Failed to generate flashcards:", error);
+      alert(`Failed to generate flashcards: ${error.message}`);
+    } finally {
+      setIsGeneratingFlashcards(false);
+    }
+  };
+
+  const handleGenerateQuiz = async () => {
+    if (!content || isGeneratingQuiz) return;
+    
+    setIsGeneratingQuiz(true);
+    try {
+      const result = await generateQuiz({
+        workspaceId,
+        subtopicId: content.subtopicId,
+        contentId,
+        topicName: content.subtopicName || content.subtopicId,
+      });
+      
+      if (result?.quizId) {
+        router.push(`/workspace/${workspaceId}/quizzes/${result.quizId}`);
+      }
+    } catch (error: any) {
+      console.error("Failed to generate quiz:", error);
+      alert(`Failed to generate quiz: ${error.message}`);
+    } finally {
+      setIsGeneratingQuiz(false);
+    }
+  };
 
   if (content === undefined) {
     return (
@@ -155,6 +259,104 @@ export default function ContentPage() {
                 <div className="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-sm text-white/90 backdrop-blur-sm">
                   <BookOpen className="h-4 w-4" />
                   <span>{wordCount.toLocaleString()} words</span>
+                </div>
+              </div>
+              {/* Generate Flashcards and Quiz Buttons */}
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Button
+                  onClick={handleGenerateFlashcards}
+                  disabled={isGeneratingFlashcards || isGeneratingQuiz || isRegeneratingContent}
+                  className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-0"
+                >
+                  {isGeneratingFlashcards ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating Flashcards...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Generate Flashcards
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={handleGenerateQuiz}
+                  disabled={isGeneratingFlashcards || isGeneratingQuiz || isRegeneratingContent}
+                  className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-0"
+                >
+                  {isGeneratingQuiz ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating Quiz...
+                    </>
+                  ) : (
+                    <>
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      Generate Quiz
+                    </>
+                  )}
+                </Button>
+
+                {/* Regenerate Content with Source Selection */}
+                <div className="relative">
+                  <div className="flex items-center gap-1">
+                    <Button
+                      onClick={handleRegenerateContent}
+                      disabled={isGeneratingFlashcards || isGeneratingQuiz || isRegeneratingContent}
+                      className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-0 rounded-r-none"
+                    >
+                      {isRegeneratingContent ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Regenerating...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Regenerate Content
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => setShowSourceOptions(!showSourceOptions)}
+                      disabled={isGeneratingFlashcards || isGeneratingQuiz || isRegeneratingContent}
+                      className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-0 rounded-l-none px-2"
+                    >
+                      {getSourceIcon(contentSource)}
+                      <ChevronDown className={`ml-1 h-3 w-3 transition-transform ${showSourceOptions ? "rotate-180" : ""}`} />
+                    </Button>
+                  </div>
+                  
+                  {showSourceOptions && (
+                    <div className="absolute right-0 top-full z-20 mt-2 min-w-[180px] rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-600 dark:bg-slate-700">
+                      <button
+                        onClick={() => { setContentSource("web"); setShowSourceOptions(false); }}
+                        className={`flex w-full items-center gap-2 px-3 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-600 ${contentSource === "web" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" : "text-slate-700 dark:text-slate-200"}`}
+                      >
+                        <Globe className="h-4 w-4" />
+                        <span>Web Search Only</span>
+                      </button>
+                      <button
+                        onClick={() => { setContentSource("rag"); setShowSourceOptions(false); }}
+                        disabled={!hasIndexedDocuments}
+                        className={`flex w-full items-center gap-2 px-3 py-2.5 text-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-slate-600 ${contentSource === "rag" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" : "text-slate-700 dark:text-slate-200"}`}
+                      >
+                        <Database className="h-4 w-4" />
+                        <span>Your Documents</span>
+                        {!hasIndexedDocuments && <span className="ml-auto text-xs text-amber-500">No docs</span>}
+                      </button>
+                      <button
+                        onClick={() => { setContentSource("both"); setShowSourceOptions(false); }}
+                        disabled={!hasIndexedDocuments}
+                        className={`flex w-full items-center gap-2 px-3 py-2.5 text-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-slate-600 ${contentSource === "both" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" : "text-slate-700 dark:text-slate-200"}`}
+                      >
+                        <Settings className="h-4 w-4" />
+                        <span>Both Sources</span>
+                        {!hasIndexedDocuments && <span className="ml-auto text-xs text-amber-500">No docs</span>}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
