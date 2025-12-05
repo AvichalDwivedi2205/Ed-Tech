@@ -343,6 +343,33 @@ function RoadmapsTab({
 }
 
 function ContentTab({ content, workspaceId }: { content: any[]; workspaceId: Id<"workspaces"> }) {
+  const router = useRouter();
+  const [generatingNotesFor, setGeneratingNotesFor] = useState<string | null>(null);
+  const generateNotes = useAction(api.actions.notes.generate);
+
+  const handleGenerateNotes = async (item: any) => {
+    if (generatingNotesFor) return;
+    
+    setGeneratingNotesFor(item._id);
+    try {
+      const result = await generateNotes({
+        workspaceId,
+        subtopicId: item.subtopicId,
+        contentId: item._id as Id<"content">,
+        topicName: item.subtopicName || item.subtopicId,
+      });
+      
+      if (result?.notesId) {
+        router.push(`/workspace/${workspaceId}/notes/${result.notesId}`);
+      }
+    } catch (error: any) {
+      console.error("Failed to generate notes:", error);
+      alert(`Failed to generate notes: ${error.message}`);
+    } finally {
+      setGeneratingNotesFor(null);
+    }
+  };
+
   if (content.length === 0) {
     return (
       <Card>
@@ -367,10 +394,31 @@ function ContentTab({ content, workspaceId }: { content: any[]; workspaceId: Id<
               Updated {new Date(item.updatedAt).toLocaleDateString()}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <Link href={`/workspace/${workspaceId}/content/${item._id}`}>
-              <Button variant="outline" className="w-full">View Content</Button>
+              <Button variant="outline" className="w-full">
+                <FileText className="mr-2 h-4 w-4" />
+                View Content
+              </Button>
             </Link>
+            <Button 
+              variant="outline" 
+              className="w-full text-teal-700 border-teal-300 hover:bg-teal-50 dark:text-teal-400 dark:border-teal-700 dark:hover:bg-teal-900/30"
+              onClick={() => handleGenerateNotes(item)}
+              disabled={generatingNotesFor === item._id}
+            >
+              {generatingNotesFor === item._id ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <StickyNote className="mr-2 h-4 w-4" />
+                  Quick Notes
+                </>
+              )}
+            </Button>
           </CardContent>
         </Card>
       ))}

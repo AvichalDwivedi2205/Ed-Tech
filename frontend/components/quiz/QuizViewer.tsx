@@ -8,13 +8,49 @@ import { CheckCircle2, XCircle, Eye, EyeOff } from "lucide-react";
 interface QuizQuestion {
   question: string;
   options?: string[];
-  correctAnswer: number;
+  correctAnswer: number | string; // Can be either index or answer text
   explanation?: string;
 }
 
 interface QuizViewerProps {
   questions: QuizQuestion[];
   title?: string;
+}
+
+// Helper function to find correct answer index
+function getCorrectAnswerIndex(question: QuizQuestion): number {
+  if (typeof question.correctAnswer === 'number') {
+    return question.correctAnswer;
+  }
+  
+  // correctAnswer is a string - find matching option
+  const options = question.options || [];
+  const correctText = question.correctAnswer.toString().trim().toLowerCase();
+  
+  // First try exact match
+  let index = options.findIndex(opt => opt.trim().toLowerCase() === correctText);
+  
+  // If no exact match, try partial match (answer might be contained in option or vice versa)
+  if (index === -1) {
+    index = options.findIndex(opt => 
+      opt.trim().toLowerCase().includes(correctText) || 
+      correctText.includes(opt.trim().toLowerCase())
+    );
+  }
+  
+  // If still no match, try matching first few significant words
+  if (index === -1) {
+    const correctWords = correctText.split(/\s+/).filter(w => w.length > 3).slice(0, 5);
+    if (correctWords.length > 0) {
+      index = options.findIndex(opt => {
+        const optLower = opt.toLowerCase();
+        const matchCount = correctWords.filter(w => optLower.includes(w)).length;
+        return matchCount >= Math.min(2, correctWords.length);
+      });
+    }
+  }
+  
+  return index >= 0 ? index : 0; // Default to first option if no match found
 }
 
 export function QuizViewer({ questions: rawQuestions, title }: QuizViewerProps) {
@@ -79,7 +115,8 @@ export function QuizViewer({ questions: rawQuestions, title }: QuizViewerProps) 
   const calculateScore = () => {
     let correct = 0;
     questions.forEach((q, index) => {
-      if (selectedAnswers[index] === q.correctAnswer) {
+      const correctIndex = getCorrectAnswerIndex(q);
+      if (selectedAnswers[index] === correctIndex) {
         correct++;
       }
     });
@@ -88,7 +125,8 @@ export function QuizViewer({ questions: rawQuestions, title }: QuizViewerProps) 
 
   const question = questions[currentQuestion];
   const selectedAnswer = selectedAnswers[currentQuestion];
-  const isCorrect = selectedAnswer !== undefined && selectedAnswer === question.correctAnswer;
+  const correctAnswerIndex = getCorrectAnswerIndex(question);
+  const isCorrect = selectedAnswer !== undefined && selectedAnswer === correctAnswerIndex;
   const isAnswerRevealed = revealedAnswers.has(currentQuestion);
 
   if (showResults && currentQuestion === questions.length - 1) {
@@ -110,7 +148,8 @@ export function QuizViewer({ questions: rawQuestions, title }: QuizViewerProps) 
           <div className="space-y-4">
             {questions.map((q, index) => {
               const userAnswer = selectedAnswers[index];
-              const isQCorrect = userAnswer === q.correctAnswer;
+              const correctIndex = getCorrectAnswerIndex(q);
+              const isQCorrect = userAnswer === correctIndex;
               return (
                 <Card key={index} className={isQCorrect ? "border-green-500" : "border-red-500"}>
                   <CardContent className="p-4">
@@ -125,9 +164,9 @@ export function QuizViewer({ questions: rawQuestions, title }: QuizViewerProps) 
                         <p className="text-sm text-slate-600 dark:text-slate-400">
                           Your answer: {q.options && q.options[userAnswer] ? q.options[userAnswer] : 'No answer'}
                         </p>
-                        {!isQCorrect && q.options && q.options[q.correctAnswer] && (
+                        {!isQCorrect && q.options && q.options[correctIndex] && (
                           <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                            Correct answer: {q.options[q.correctAnswer]}
+                            Correct answer: {q.options[correctIndex]}
                           </p>
                         )}
                         {q.explanation && (
@@ -168,8 +207,8 @@ export function QuizViewer({ questions: rawQuestions, title }: QuizViewerProps) 
           <div className="space-y-2">
             {(question.options || []).map((option, index) => {
               const isSelected = selectedAnswer === index;
-              const showCorrect = (showResults || isAnswerRevealed) && index === question.correctAnswer;
-              const showIncorrect = (showResults || isAnswerRevealed) && isSelected && index !== question.correctAnswer;
+              const showCorrect = (showResults || isAnswerRevealed) && index === correctAnswerIndex;
+              const showIncorrect = (showResults || isAnswerRevealed) && isSelected && index !== correctAnswerIndex;
               
               return (
                 <button
