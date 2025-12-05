@@ -97,8 +97,8 @@ The UI uses a study-focused color palette (no purple):
    - Get your Convex URL from: https://dashboard.convex.dev
 
 3. **Deploy:**
-   - Vercel will automatically detect Next.js and deploy
-   - The build command will run: `npm run build`
+   - Vercel will automatically detect Next.js and pnpm (via `pnpm-lock.yaml`)
+   - The build command will run: `pnpm build` (configured in `vercel.json`)
    - The output directory is: `.next`
 
 ### Option 2: Deploy from repository root

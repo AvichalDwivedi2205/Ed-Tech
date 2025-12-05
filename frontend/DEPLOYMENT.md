@@ -30,12 +30,14 @@ This guide will help you deploy the OpenT frontend to Vercel.
 
 ### 3. Configure Build Settings
 
-Vercel should auto-detect Next.js, but verify these settings:
+Vercel should auto-detect Next.js and pnpm (via `pnpm-lock.yaml`), but verify these settings:
 
 - **Framework Preset:** Next.js
-- **Build Command:** `npm run build` (or `pnpm build` if using pnpm)
+- **Build Command:** `pnpm build` (configured in `vercel.json`)
 - **Output Directory:** `.next` (auto-detected)
-- **Install Command:** `npm install` (or `pnpm install`)
+- **Install Command:** `pnpm install` (configured in `vercel.json`)
+
+**Note:** The `vercel.json` file is already configured to use pnpm, so Vercel will automatically use it.
 
 ### 4. Deploy
 
