@@ -1,7 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Video, BookOpen, FileText, ExternalLink, Clock, Target, ListChecks } from "lucide-react";
+import { useQuery, useAction } from "convex/react";
+import { api } from "convex/_generated/api";
+import type { Id } from "convex/_generated/dataModel";
+import Link from "next/link";
+import { 
+  ChevronDown, 
+  ChevronUp, 
+  Video, 
+  BookOpen, 
+  FileText, 
+  ExternalLink, 
+  Clock, 
+  Target, 
+  ListChecks,
+  Sparkles,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  Eye,
+  RefreshCw
+} from "lucide-react";
 
 interface RoadmapNodeProps {
   data: {
@@ -14,9 +34,12 @@ interface RoadmapNodeProps {
     topicIndex?: number;
     totalTopics?: number;
   };
+  topicId?: string;
+  workspaceId?: Id<"workspaces">;
+  roadmapId?: Id<"roadmaps">;
 }
 
-export function RoadmapNode({ data }: RoadmapNodeProps) {
+export function RoadmapNode({ data, topicId, workspaceId, roadmapId }: RoadmapNodeProps) {
   const [expandedSections, setExpandedSections] = useState<{
     videos: boolean;
     blogs: boolean;
@@ -26,8 +49,23 @@ export function RoadmapNode({ data }: RoadmapNodeProps) {
     videos: false,
     blogs: false,
     books: false,
-    subtopics: false, // Start collapsed
+    subtopics: false,
   });
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [justGenerated, setJustGenerated] = useState(false);
+
+  // Query existing content for this topic
+  const existingContent = useQuery(
+    api.queries.content.getContentBySubtopic,
+    workspaceId && topicId
+      ? { workspaceId, subtopicId: topicId }
+      : "skip"
+  );
+
+  // Content generation action
+  const generateContent = useAction(api.actions.content.generate);
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections((prev) => ({
@@ -36,15 +74,59 @@ export function RoadmapNode({ data }: RoadmapNodeProps) {
     }));
   };
 
+  const handleGenerateContent = async () => {
+    if (!workspaceId || !topicId) {
+      setError("Missing workspace or topic information");
+      return;
+    }
+
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      await generateContent({
+        workspaceId,
+        roadmapId,
+        subtopicId: topicId,
+        settings: {
+          useRag: false,
+          useWebSearch: true,
+        },
+      });
+      setJustGenerated(true);
+      // Clear the just generated state after a few seconds
+      setTimeout(() => setJustGenerated(false), 3000);
+    } catch (err: any) {
+      console.error("Content generation failed:", err);
+      setError(err.message || "Failed to generate content. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const videoCount = data.videos?.length || 0;
   const blogCount = data.blogs?.length || 0;
   const bookCount = data.books?.length || 0;
   const subtopicCount = data.subtopics?.length || 0;
 
+  const hasContent = !!existingContent;
+  const canGenerate = workspaceId && topicId && !hasContent && !isGenerating;
+
   return (
     <div
-      className="group relative rounded-2xl border-2 bg-white shadow-lg transition-all duration-300 hover:shadow-xl dark:bg-slate-800 border-slate-200 hover:border-blue-400 dark:border-slate-600 dark:hover:border-blue-500"
+      className={`group relative rounded-2xl border-2 bg-white shadow-lg transition-all duration-300 hover:shadow-xl dark:bg-slate-800 ${
+        hasContent 
+          ? "border-green-300 dark:border-green-600" 
+          : "border-slate-200 hover:border-blue-400 dark:border-slate-600 dark:hover:border-blue-500"
+      }`}
     >
+      {/* Content Status Badge */}
+      {hasContent && (
+        <div className="absolute -right-2 -top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-green-500 shadow-lg">
+          <CheckCircle2 className="h-4 w-4 text-white" />
+        </div>
+      )}
+
       {/* Header with Gradient */}
       <div className="relative overflow-hidden rounded-t-xl border-b border-slate-100 bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 p-4 dark:border-slate-700">
         {/* Decorative Elements */}
@@ -101,6 +183,89 @@ export function RoadmapNode({ data }: RoadmapNodeProps) {
           </div>
         )}
       </div>
+
+      {/* Content Generation Section */}
+      {workspaceId && topicId && (
+        <div className="border-b border-slate-100 bg-gradient-to-r from-purple-50/50 to-blue-50/50 px-3 py-3 dark:border-slate-700 dark:from-purple-900/20 dark:to-blue-900/20">
+          {isGenerating ? (
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/40">
+                <Loader2 className="h-4 w-4 animate-spin text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                  Generating content...
+                </p>
+                <p className="text-xs text-purple-600/70 dark:text-purple-400/70">
+                  This may take a minute
+                </p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/40">
+                <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                  Generation failed
+                </p>
+                <p className="text-xs text-red-600/70 dark:text-red-400/70 line-clamp-1">
+                  {error}
+                </p>
+              </div>
+              <button
+                onClick={handleGenerateContent}
+                className="flex items-center gap-1.5 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Retry
+              </button>
+            </div>
+          ) : justGenerated ? (
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40">
+                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                  Content generated successfully!
+                </p>
+              </div>
+            </div>
+          ) : hasContent ? (
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40">
+                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                  Content ready
+                </p>
+                <p className="text-xs text-green-600/70 dark:text-green-400/70">
+                  Study material available
+                </p>
+              </div>
+              <Link
+                href={`/workspace/${workspaceId}/content/${existingContent._id}`}
+                className="flex items-center gap-1.5 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-medium text-green-700 transition-colors hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/60"
+              >
+                <Eye className="h-3 w-3" />
+                View Content
+              </Link>
+            </div>
+          ) : (
+            <button
+              onClick={handleGenerateContent}
+              disabled={!canGenerate}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:from-purple-700 hover:to-blue-700 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Sparkles className="h-4 w-4" />
+              Generate Content
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Content - Collapsible Sections */}
       <div className="max-h-[350px] overflow-y-auto p-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">

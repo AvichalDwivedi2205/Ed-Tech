@@ -1,14 +1,31 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useAction } from "convex/react";
+import { api } from "convex/_generated/api";
+import type { Id } from "convex/_generated/dataModel";
 import { RoadmapNode } from "./RoadmapNode";
-import { LayoutGrid, ArrowDown } from "lucide-react";
+import { LayoutGrid, ArrowDown, Sparkles, Loader2, CheckCircle2, FastForward } from "lucide-react";
 
 interface RoadmapFlowProps {
   roadmapData: any;
+  workspaceId?: Id<"workspaces">;
+  roadmapId?: Id<"roadmaps">;
 }
 
-export function RoadmapFlow({ roadmapData }: RoadmapFlowProps) {
+export function RoadmapFlow({ roadmapData, workspaceId, roadmapId }: RoadmapFlowProps) {
+  const [isGeneratingNext, setIsGeneratingNext] = useState(false);
+  const [generatingTopicId, setGeneratingTopicId] = useState<string | null>(null);
+
+  // Content generation action
+  const generateContent = useAction(api.actions.content.generate);
+
+  // Query all content for this workspace to determine which topics have content
+  const allContent = useQuery(
+    api.queries.content.listContent,
+    workspaceId ? { workspaceId } : "skip"
+  );
+
   // Extract topics
   const topics = useMemo(() => {
     if (!roadmapData || typeof roadmapData !== "object") {
@@ -45,6 +62,47 @@ export function RoadmapFlow({ roadmapData }: RoadmapFlowProps) {
     });
   }, [roadmapData, topics]);
 
+  // Find topics that already have content
+  const completedTopicIds = useMemo(() => {
+    if (!allContent) return new Set<string>();
+    return new Set(allContent.map((c) => c.subtopicId));
+  }, [allContent]);
+
+  // Find next topic without content
+  const nextTopicToGenerate = useMemo(() => {
+    return topicData.find((topic) => !completedTopicIds.has(topic.id));
+  }, [topicData, completedTopicIds]);
+
+  // Progress stats
+  const completedCount = topicData.filter((t) => completedTopicIds.has(t.id)).length;
+  const totalCount = topicData.length;
+  const allCompleted = completedCount === totalCount && totalCount > 0;
+
+  // Handle Generate Next
+  const handleGenerateNext = async () => {
+    if (!workspaceId || !nextTopicToGenerate) return;
+
+    setIsGeneratingNext(true);
+    setGeneratingTopicId(nextTopicToGenerate.id);
+
+    try {
+      await generateContent({
+        workspaceId,
+        roadmapId,
+        subtopicId: nextTopicToGenerate.id,
+        settings: {
+          useRag: false,
+          useWebSearch: true,
+        },
+      });
+    } catch (err) {
+      console.error("Content generation failed:", err);
+    } finally {
+      setIsGeneratingNext(false);
+      setGeneratingTopicId(null);
+    }
+  };
+
   if (topicData.length === 0) {
     return (
       <div className="flex min-h-[400px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-gradient-to-br from-slate-50 to-slate-100 dark:border-slate-700 dark:from-slate-900 dark:to-slate-800">
@@ -59,14 +117,56 @@ export function RoadmapFlow({ roadmapData }: RoadmapFlowProps) {
 
   return (
     <div className="w-full">
-      {/* Header */}
-      <div className="mb-6 text-center">
-        <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 px-4 py-2 text-sm font-medium text-slate-700 dark:from-blue-500/20 dark:via-purple-500/20 dark:to-pink-500/20 dark:text-slate-300">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-500 text-xs font-bold text-white">
-            {topics.length}
+      {/* Header with Progress and Generate Next Button */}
+      <div className="mb-6 flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+        {/* Progress Stats */}
+        <div className="flex items-center gap-4">
+          <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 px-4 py-2 text-sm font-medium text-slate-700 dark:from-blue-500/20 dark:via-purple-500/20 dark:to-pink-500/20 dark:text-slate-300">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-500 text-xs font-bold text-white">
+              {topics.length}
+            </span>
+            Topics in your learning path
           </span>
-          Topics in your learning path
-        </span>
+          
+          {/* Content Progress */}
+          {workspaceId && (
+            <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 dark:bg-slate-800">
+              <CheckCircle2 className={`h-4 w-4 ${allCompleted ? 'text-green-500' : 'text-slate-400'}`} />
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                {completedCount}/{totalCount} generated
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Generate Next Button */}
+        {workspaceId && nextTopicToGenerate && (
+          <button
+            onClick={handleGenerateNext}
+            disabled={isGeneratingNext}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:from-purple-700 hover:to-blue-700 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {isGeneratingNext ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Generating...</span>
+              </>
+            ) : (
+              <>
+                <FastForward className="h-4 w-4" />
+                <span>Generate Next: {nextTopicToGenerate.topicName.substring(0, 20)}{nextTopicToGenerate.topicName.length > 20 ? '...' : ''}</span>
+              </>
+            )}
+          </button>
+        )}
+
+        {/* All Complete Badge */}
+        {workspaceId && allCompleted && (
+          <div className="flex items-center gap-2 rounded-xl bg-green-100 px-4 py-2.5 text-sm font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400">
+            <CheckCircle2 className="h-4 w-4" />
+            <span>All content generated!</span>
+          </div>
+        )}
       </div>
 
       {/* Flowchart - Simple vertical list with connectors */}
@@ -77,6 +177,9 @@ export function RoadmapFlow({ roadmapData }: RoadmapFlowProps) {
             <div className="w-full">
               <RoadmapNode 
                 data={data}
+                topicId={data.id}
+                workspaceId={workspaceId}
+                roadmapId={roadmapId}
               />
             </div>
             

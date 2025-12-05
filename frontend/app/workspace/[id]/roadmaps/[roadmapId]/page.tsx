@@ -114,7 +114,11 @@ export default function RoadmapPage() {
 
         {/* Roadmap Flow */}
         <div className="rounded-3xl bg-white/50 p-6 shadow-xl ring-1 ring-slate-200/50 backdrop-blur-sm dark:bg-slate-900/50 dark:ring-slate-700/50 lg:p-8">
-          <RoadmapFlow roadmapData={roadmapData} />
+          <RoadmapFlow 
+            roadmapData={roadmapData} 
+            workspaceId={workspaceId}
+            roadmapId={roadmapId}
+          />
         </div>
       </div>
     </div>

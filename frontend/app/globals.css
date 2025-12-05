@@ -58,6 +58,95 @@ html {
   background: #64748b;
 }
 
+/* Syntax Highlighting - GitHub Dark Theme */
+.hljs {
+  color: #e6edf3;
+  background: transparent;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: #8b949e;
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-type {
+  color: #ff7b72;
+}
+
+.hljs-number,
+.hljs-selector-attr,
+.hljs-selector-pseudo {
+  color: #79c0ff;
+}
+
+.hljs-string,
+.hljs-doctag,
+.hljs-regexp,
+.hljs-selector-id,
+.hljs-attr {
+  color: #a5d6ff;
+}
+
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.function_ {
+  color: #d2a8ff;
+}
+
+.hljs-variable,
+.hljs-template-variable {
+  color: #ffa657;
+}
+
+.hljs-built_in,
+.hljs-name {
+  color: #7ee787;
+}
+
+.hljs-meta {
+  color: #79c0ff;
+}
+
+.hljs-section {
+  color: #79c0ff;
+  font-weight: bold;
+}
+
+.hljs-tag {
+  color: #7ee787;
+}
+
+.hljs-attribute {
+  color: #79c0ff;
+}
+
+.hljs-symbol,
+.hljs-bullet {
+  color: #ffa657;
+}
+
+.hljs-addition {
+  color: #aff5b4;
+  background-color: rgba(46, 160, 67, 0.15);
+}
+
+.hljs-deletion {
+  color: #ffdcd7;
+  background-color: rgba(248, 81, 73, 0.15);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+
 /* React Flow customizations for dark mode */
 .dark .react-flow__background {
   background-color: #0f172a !important;
