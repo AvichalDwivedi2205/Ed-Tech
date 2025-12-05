@@ -7,11 +7,10 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ConvexStatus } from "@/components/ConvexStatus";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, ExternalLink, FileText, FileDown } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, FileText } from "lucide-react";
 import Link from "next/link";
 import { ResearchReportViewer } from "@/components/research/ResearchReportViewer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState } from "react";
 
 export default function ReportPage() {
   const params = useParams();
@@ -20,8 +19,6 @@ export default function ReportPage() {
   const report = useQuery(api.queries.deepResearch.getReport, {
     reportId,
   });
-
-  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
 
   const handleDownloadMarkdown = () => {
     if (!report?.markdown) return;
@@ -35,147 +32,6 @@ export default function ReportPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  };
-
-  const handleDownloadPDF = async () => {
-    if (!report?.markdown) return;
-    
-    setIsDownloadingPDF(true);
-    try {
-      // Dynamic import of html2pdf
-      const html2pdf = (await import("html2pdf.js")).default;
-      
-      // Create a temporary container with the report content
-      const element = document.createElement("div");
-      element.className = "research-report-pdf";
-      element.innerHTML = `
-        <style>
-          @page {
-            margin: 2cm;
-            size: A4;
-          }
-          body {
-            font-family: 'Georgia', 'Times New Roman', serif;
-            line-height: 1.8;
-            color: #1f2937;
-            font-size: 11pt;
-          }
-          h1 {
-            font-size: 24pt;
-            font-weight: 700;
-            margin-top: 0;
-            margin-bottom: 20pt;
-            border-bottom: 3px solid #e5e7eb;
-            padding-bottom: 10pt;
-          }
-          h2 {
-            font-size: 18pt;
-            font-weight: 600;
-            margin-top: 30pt;
-            margin-bottom: 15pt;
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 8pt;
-          }
-          h3 {
-            font-size: 14pt;
-            font-weight: 600;
-            margin-top: 20pt;
-            margin-bottom: 10pt;
-          }
-          p {
-            margin-bottom: 12pt;
-            text-align: justify;
-          }
-          ul, ol {
-            margin-bottom: 12pt;
-            padding-left: 30pt;
-          }
-          li {
-            margin-bottom: 6pt;
-          }
-          blockquote {
-            border-left: 4px solid #6366f1;
-            padding-left: 15pt;
-            margin: 20pt 0;
-            font-style: italic;
-            background: #f9fafb;
-            padding: 15pt;
-          }
-          code {
-            background: #f3f4f6;
-            padding: 2pt 4pt;
-            border-radius: 3pt;
-            font-size: 9pt;
-            font-family: 'Courier New', monospace;
-          }
-          pre {
-            background: #1f2937;
-            padding: 15pt;
-            border-radius: 5pt;
-            overflow-x: auto;
-            color: #e5e7eb;
-          }
-          pre code {
-            background: transparent;
-            padding: 0;
-            color: #e5e7eb;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20pt 0;
-            font-size: 10pt;
-          }
-          th, td {
-            border: 1px solid #e5e7eb;
-            padding: 8pt 10pt;
-            text-align: left;
-          }
-          th {
-            background: #f9fafb;
-            font-weight: 600;
-          }
-          hr {
-            border: none;
-            border-top: 2px solid #e5e7eb;
-            margin: 30pt 0;
-          }
-          a {
-            color: #2563eb;
-            text-decoration: underline;
-          }
-        </style>
-        <div style="max-width: 100%;">
-          ${report.markdown
-            .replace(/```[\s\S]*?```/g, (match) => {
-              // Preserve code blocks
-              return match;
-            })
-            .replace(/\n/g, "<br>")
-            .replace(/^# (.+)$/gm, "<h1>$1</h1>")
-            .replace(/^## (.+)$/gm, "<h2>$1</h2>")
-            .replace(/^### (.+)$/gm, "<h3>$1</h3>")
-            .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-            .replace(/\*(.+?)\*/g, "<em>$1</em>")
-            .replace(/\[(\d+)\]/g, '<sup style="color: #6366f1; font-weight: 600;">[$1]</sup>')}
-        </div>
-      `;
-      
-      const opt = {
-        margin: [20, 20, 20, 20],
-        filename: `${report.title || report.query}.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      };
-      
-      await html2pdf().set(opt).from(element).save();
-    } catch (error: any) {
-      console.error("Failed to generate PDF:", error);
-      alert("Failed to generate PDF. Please try downloading as Markdown instead.");
-    } finally {
-      setIsDownloadingPDF(false);
-    }
   };
 
   if (report === undefined) {
@@ -252,26 +108,15 @@ export default function ReportPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleDownloadMarkdown}
-                disabled={!report?.markdown}
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                Markdown
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleDownloadPDF}
-                disabled={!report?.markdown || isDownloadingPDF}
-              >
-                <FileDown className="mr-2 h-4 w-4" />
-                {isDownloadingPDF ? "Generating..." : "PDF"}
-              </Button>
-            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleDownloadMarkdown}
+              disabled={!report?.markdown}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download
+            </Button>
             <ConvexStatus />
             <ThemeToggle />
           </div>
