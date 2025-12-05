@@ -81,3 +81,31 @@ The UI uses a study-focused color palette (no purple):
 - Run `pnpm dev` to start the development server
 - Run `pnpm build` to build for production
 - Run `pnpm start` to start the production server
+
+## Deployment to Vercel
+
+### Option 1: Deploy from the `frontend` directory (Recommended)
+
+1. **Connect your repository to Vercel:**
+   - Go to [vercel.com](https://vercel.com)
+   - Import your Git repository
+   - Set the **Root Directory** to `frontend` in project settings
+
+2. **Set environment variable:**
+   - In Vercel project settings, go to **Environment Variables**
+   - Add: `NEXT_PUBLIC_CONVEX_URL` with your Convex deployment URL
+   - Get your Convex URL from: https://dashboard.convex.dev
+
+3. **Deploy:**
+   - Vercel will automatically detect Next.js and deploy
+   - The build command will run: `npm run build`
+   - The output directory is: `.next`
+
+### Option 2: Deploy from repository root
+
+If deploying from the repository root, use the `vercel.json` configuration file.
+
+**Environment Variable Required:**
+- `NEXT_PUBLIC_CONVEX_URL` - Your Convex deployment URL (e.g., `https://your-deployment.convex.cloud`)
+
+**Note:** The backend is already hosted on Convex, so you only need to configure the frontend environment variable.
