@@ -13,7 +13,7 @@ export class PerplexitySearchTool {
         }
     }
 
-    async runRaw(query: string): Promise<any> {
+    async runRaw(query: string, maxResults: number = 5): Promise<any> {
         try {
             // Use the new Search API endpoint
             // Docs: https://docs.perplexity.ai/guides/search-quickstart
@@ -21,7 +21,7 @@ export class PerplexitySearchTool {
                 "https://api.perplexity.ai/search",
                 {
                     query: query,
-                    max_results: 5,
+                    max_results: maxResults,
                     // max_tokens_per_page: 1024 // Optional, controls snippet length
                 },
                 {
@@ -35,7 +35,7 @@ export class PerplexitySearchTool {
         } catch (error: any) {
             console.error(`Perplexity search failed: ${error.message}`);
             // Return empty structure on error
-            return { results: [] };
+            return { results: [], citations: [] };
         }
     }
 
@@ -72,14 +72,14 @@ export class TavilySearchTool {
         }
     }
 
-    async runRaw(query: string, maxResults: number = 5): Promise<any> {
+    async runRaw(query: string, maxResults: number = 5, searchDepth: "basic" | "advanced" = "advanced"): Promise<any> {
         try {
             const response = await axios.post(
                 "https://api.tavily.com/search",
                 {
                     api_key: this.apiKey,
                     query: query,
-                    search_depth: "advanced",
+                    search_depth: searchDepth,
                     include_answer: true,
                     max_results: maxResults,
                 },

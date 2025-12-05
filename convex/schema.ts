@@ -144,4 +144,48 @@ export default defineSchema({
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_subtopic", ["workspaceId", "subtopicId"]),
+
+  deepResearchGenerations: defineTable({
+    userInput: v.string(),
+    messages: v.array(v.any()),
+    clarificationCount: v.number(),
+    waitingForResponse: v.boolean(),
+    researchContext: v.optional(v.string()),
+    status: v.union(
+      v.literal("clarifying"),
+      v.literal("generating"),
+      v.literal("completed"),
+      v.literal("failed")
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_status", ["status"]),
+
+  deepResearchReports: defineTable({
+    query: v.string(),
+    title: v.string(),
+    markdown: v.string(),
+    summary: v.string(),
+    citations: v.array(v.object({
+      id: v.string(),
+      url: v.string(),
+      title: v.string(),
+      snippet: v.optional(v.string()),
+      accessedAt: v.string(),
+    })),
+    sections: v.array(v.string()),
+    researchDepth: v.union(v.literal("normal"), v.literal("comprehensive")),
+    sourcesCount: v.number(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("generating"),
+      v.literal("completed"),
+      v.literal("failed")
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"]),
 });

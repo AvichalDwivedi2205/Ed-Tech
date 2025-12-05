@@ -10,7 +10,7 @@ env/
 ENV/
 .ENV/
 virtualenv/
-
+.kiro
 # Python cache
 __pycache__/
 *.py[cod]
