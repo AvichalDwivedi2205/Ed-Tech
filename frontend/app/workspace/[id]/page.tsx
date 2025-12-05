@@ -12,10 +12,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ConvexStatus } from "@/components/ConvexStatus";
 import { GenerateRoadmapDialog } from "@/components/workspace/GenerateRoadmapDialog";
+import { MiniDrona } from "@/components/ai/MiniDrona";
 import Link from "next/link";
 import { useState } from "react";
 
-export default function WorkspacePage() {
+function WorkspacePage() {
   const params = useParams();
   const router = useRouter();
   const workspaceId = params.id as Id<"workspaces">;
@@ -499,6 +500,19 @@ function DocumentsTab({ workspaceId }: { workspaceId: Id<"workspaces"> }) {
         </Card>
       ))}
     </div>
+  );
+}
+
+// Export the main component wrapper that includes MiniDrona
+export default function WorkspacePageWrapper() {
+  const params = useParams();
+  const workspaceId = params.id as Id<"workspaces">;
+  
+  return (
+    <>
+      <WorkspacePage />
+      <MiniDrona workspaceId={workspaceId} />
+    </>
   );
 }
 

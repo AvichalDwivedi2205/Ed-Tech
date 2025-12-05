@@ -5,18 +5,23 @@ import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useParams } from "next/navigation";
 import { MarkdownRenderer } from "@/components/content/MarkdownRenderer";
+import { SlideRenderer, SlideContent } from "@/components/content/SlideRenderer";
+import { MiniDrona } from "@/components/ai/MiniDrona";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookOpen, Calendar, Clock, GraduationCap } from "lucide-react";
+import { ArrowLeft, BookOpen, Calendar, Clock, GraduationCap, Layers, FileText } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ConvexStatus } from "@/components/ConvexStatus";
 import Link from "next/link";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 export default function ContentPage() {
   const params = useParams();
   const contentId = params.contentId as Id<"content">;
   const workspaceId = params.id as Id<"workspaces">;
+  const [viewMode, setViewMode] = useState<"slides" | "full">("slides");
 
   const content = useQuery(api.queries.content.getContent, {
     contentId,
@@ -63,6 +68,8 @@ export default function ContentPage() {
   }
 
   const markdown = content.markdown || content.content || "";
+  const slides = (content.slides || []) as SlideContent[];
+  const hasSlides = slides.length > 0;
 
   // Estimate reading time (average 200 words per minute)
   const wordCount = markdown.split(/\s+/).length;
@@ -80,6 +87,35 @@ export default function ContentPage() {
             </Button>
           </Link>
           <div className="flex items-center gap-3">
+            {/* View Mode Toggle */}
+            {hasSlides && (
+              <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
+                <button
+                  onClick={() => setViewMode("slides")}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
+                    viewMode === "slides"
+                      ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
+                      : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                  )}
+                >
+                  <Layers className="h-4 w-4" />
+                  Slides
+                </button>
+                <button
+                  onClick={() => setViewMode("full")}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
+                    viewMode === "full"
+                      ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
+                      : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                  )}
+                >
+                  <FileText className="h-4 w-4" />
+                  Full
+                </button>
+              </div>
+            )}
             <ConvexStatus />
             <ThemeToggle />
           </div>
@@ -110,6 +146,12 @@ export default function ContentPage() {
                   <Clock className="h-4 w-4" />
                   <span>{readingTime} min read</span>
                 </div>
+                {hasSlides && (
+                  <div className="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-sm text-white/90 backdrop-blur-sm">
+                    <Layers className="h-4 w-4" />
+                    <span>{slides.length} slides</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-sm text-white/90 backdrop-blur-sm">
                   <BookOpen className="h-4 w-4" />
                   <span>{wordCount.toLocaleString()} words</span>
@@ -124,7 +166,14 @@ export default function ContentPage() {
       <div className="container mx-auto px-4 py-10">
         <div className="mx-auto max-w-4xl">
           <div className="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-slate-200/50 dark:bg-slate-900 dark:ring-slate-700/50 lg:p-12">
-            <MarkdownRenderer content={markdown} />
+            {hasSlides && viewMode === "slides" ? (
+              <SlideRenderer 
+                slides={slides} 
+                topicTitle={content.subtopicName || content.subtopicId} 
+              />
+            ) : (
+              <MarkdownRenderer content={markdown} />
+            )}
           </div>
         </div>
       </div>
@@ -140,6 +189,9 @@ export default function ContentPage() {
           </Link>
         </div>
       </div>
+
+      {/* Mini-Drona AI Assistant */}
+      <MiniDrona workspaceId={workspaceId} currentContentId={contentId} />
     </div>
   );
 }

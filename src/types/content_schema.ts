@@ -1,8 +1,22 @@
+// Slide types for lecture-style content
+export type SlideType = "theory" | "example" | "question" | "exercise" | "summary";
+
+export interface SlideContent {
+    pageNumber: number;
+    type: SlideType;
+    title: string;
+    content: string;  // Markdown content for the slide
+    notes?: string;   // Optional presenter notes or additional context
+}
+
 export interface AgentResponse {
     id: string;
-    title: string;
+    title: string;         // The actual topic name from roadmap
+    subtopicId: string;    // The subtopic identifier (e.g., "Subtopic1")
     createdAt: string;
-    markdown: string;
+    markdown: string;      // Legacy: full markdown (kept for backwards compatibility)
+    slides: SlideContent[]; // New: array of slides for paginated view
+    totalSlides: number;
 }
 
 export interface ContentGenerationSettings {

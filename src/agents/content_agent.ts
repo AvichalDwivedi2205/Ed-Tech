@@ -6,7 +6,7 @@ import { TavilySearchTool } from "../tools/search";
 import { AcademicRetrievalTool } from "../tools/academic_scraper";
 import { PerplexitySearchTool } from "../tools/search";
 // Removed fs and path imports - no longer needed for Convex integration
-import { AgentResponse, ContentGenerationSettings } from "../types/content_schema";
+import { AgentResponse, ContentGenerationSettings, SlideContent, SlideType } from "../types/content_schema";
 // Removed renderMarkdownToHtml import - no longer needed for Convex integration
 import { RAGService } from "../services/rag_service";
 import { getConvexClient, getWorkspaceId } from "../utils/convex_client";
@@ -33,7 +33,7 @@ export const ContentAgentState = Annotation.Root({
         reducer: (x, y) => y,
         default: () => ({}),
     }),
-    // New state for deep content generation
+    // Updated state for slide-based content generation
     content_plan: Annotation<any[]>({ // Array of section objects { title, description }
         reducer: (x, y) => y,
         default: () => [],
@@ -42,7 +42,11 @@ export const ContentAgentState = Annotation.Root({
         reducer: (x, y) => y,
         default: () => 0,
     }),
-    sections_content: Annotation<string[]>({ // Array of generated markdown strings
+    slides: Annotation<SlideContent[]>({ // Array of slide objects
+        reducer: (x, y) => x.concat(y), // Append new slides
+        default: () => [],
+    }),
+    sections_content: Annotation<string[]>({ // Array of generated markdown strings (legacy)
         reducer: (x, y) => x.concat(y), // Append
         default: () => [],
     }),
@@ -177,6 +181,7 @@ export class ContentCreatorAgent {
             content_plan: [],
             current_section_index: 0,
             sections_content: [],
+            slides: [],
             final_json: {}
         };
     }
@@ -261,20 +266,22 @@ export class ContentCreatorAgent {
 
         const prompt = ChatPromptTemplate.fromMessages([
             new SystemMessage(`You are an expert curriculum designer. Create a detailed outline for a comprehensive course module on "${topicName}".
-            The content must be very deep and detailed, suitable for a university-level course.
+            The content will be presented as lecture slides, so structure for clear, focused sections.
             
             Generate a JSON array of section objects. Each object should have:
-            - "title": Section title
+            - "title": Section title (concise)
             - "description": Brief description of what to cover
+            - "slideCount": Number of slides needed (2-4 slides per section)
             
             Example:
             [
-                { "title": "Introduction to X", "description": "..." },
-                { "title": "Mathematical Foundations", "description": "..." },
+                { "title": "Introduction", "description": "Overview and key concepts", "slideCount": 2 },
+                { "title": "Core Principles", "description": "Fundamental concepts explained", "slideCount": 3 },
                 ...
             ]
             
-            Create at least 6-8 substantial sections to ensure depth.
+            Create 4-5 focused sections to ensure quality over quantity.
+            Each section should generate 2-4 slides (theory, example, practice question).
             Output ONLY the JSON array. NO comments, NO explanations, NO markdown code blocks. Pure JSON only.`),
             new MessagesPlaceholder("messages")
         ]);
@@ -294,15 +301,14 @@ export class ContentCreatorAgent {
             console.error("Failed to parse outline JSON", e);
             // Fallback plan
             plan = [
-                { title: "Introduction", description: "Overview of the topic" },
-                { title: "Core Concepts", description: "Key principles and definitions" },
-                { title: "Advanced Theory", description: "In-depth theoretical analysis" },
-                { title: "Practical Applications", description: "Real-world use cases" },
-                { title: "Summary", description: "Conclusion and review" }
+                { title: "Introduction", description: "Overview of the topic", slideCount: 2 },
+                { title: "Core Concepts", description: "Key principles and definitions", slideCount: 3 },
+                { title: "Practical Applications", description: "Real-world use cases", slideCount: 3 },
+                { title: "Summary", description: "Conclusion and review", slideCount: 2 }
             ];
         }
 
-        return { content_plan: plan, current_section_index: 0 };
+        return { content_plan: plan, current_section_index: 0, slides: [] };
     }
 
     private async generateSection(state: typeof ContentAgentState.State) {
@@ -310,55 +316,85 @@ export class ContentCreatorAgent {
         const index = state.current_section_index;
         const section = plan[index];
         const topicName = state.current_subtopic_data.TopicName;
+        const existingSlides = state.slides || [];
+        const startSlideNum = existingSlides.length + 1;
 
-        console.log(`Generating section ${index + 1}/${plan.length}: ${section.title}`);
+        console.log(`Generating slides for section ${index + 1}/${plan.length}: ${section.title}`);
 
         const prompt = ChatPromptTemplate.fromMessages([
-            new SystemMessage(`You are an expert academic content creator. Write deep, detailed content for the section "${section.title}" of the module "${topicName}".
+            new SystemMessage(`You are an expert academic content creator. Create lecture slides for the section "${section.title}" of the module "${topicName}".
             
             Context: ${section.description}
             
-            Output a single **Markdown** document for this section.
+            Generate a JSON array of slides. Each slide should have:
+            - "type": One of "theory", "example", "question", "exercise", or "summary"
+            - "title": Slide title (concise, 5-10 words)
+            - "content": Markdown content for the slide (keep focused and digestible, 100-200 words per slide)
             
-            ### MARKDOWN DIALECT & EXTENSIONS
+            Generate ${section.slideCount || 3} slides for this section following this pattern:
+            1. First slide: "theory" - Explain the concept clearly
+            2. Middle slides: "example" - Show practical examples with code/diagrams if relevant
+            3. Last slide: "question" - Practice problem or review question
             
-            1. **Core Markdown**:
-               - Use headers: \`#\`, \`##\`, \`###\`
-               - Lists: \`-\` or \`1.\`
-               - Tables: GFM syntax
-               - Bold/Italic: \`**bold**\`, \`*italic*\`
+            ### MARKDOWN FORMAT FOR SLIDES:
+            - Use headers: \`##\`, \`###\` (not \`#\` since slide title is separate)
+            - Lists: \`-\` or \`1.\`
+            - Math: \`$inline$\` or \`$$block$$\`
+            - Code: \`\`\`language ... \`\`\`
+            - Callouts: \`:::info\`, \`:::tip\`, \`:::warning\`
             
-            2. **Math**:
-               - Inline: \`$E = mc^2$\`
-               - Block:
-                 $$
-                 \\int_0^\\infty x^2 dx
-                 $$
+            Example output:
+            [
+                {
+                    "type": "theory",
+                    "title": "Understanding Binary Search",
+                    "content": "## Key Concept\\n\\nBinary search is a divide-and-conquer algorithm...\\n\\n### Time Complexity\\n- Best: $O(1)$\\n- Average: $O(\\\\log n)$"
+                },
+                {
+                    "type": "example", 
+                    "title": "Binary Search Implementation",
+                    "content": "## Python Example\\n\\n\`\`\`python\\ndef binary_search(arr, target):\\n    ...\\n\`\`\`"
+                }
+            ]
             
-            3. **Callouts**:
-               Use this syntax for special blocks:
-               :::info Title
-               Content...
-               :::
-               
-               Variants: \`info\`, \`warning\`, \`note\`, \`tip\`.
-            
-            ### RULES
-            - Do NOT wrap the entire output in a markdown block. Just return the markdown text.
-            - Content must be EXTENSIVE and detailed.
-            - Use proper LaTeX for all math.
-            `),
+            Output ONLY the JSON array. NO comments, NO explanations. Pure JSON only.`),
             new MessagesPlaceholder("messages")
         ]);
 
-        // Use standard model for text generation
-        const chain = prompt.pipe(this.llm);
+        const chain = prompt.pipe(this.llmStructured);
         const response = await chain.invoke({ messages: state.messages });
 
-        const content = (response as any).content as string;
+        let slidesData: { type: SlideType; title: string; content: string }[] = [];
+        try {
+            const content = (response as any).content;
+            const jsonContent = content.replace(/```json/g, "").replace(/```/g, "").trim();
+            slidesData = JSON.parse(jsonContent);
+        } catch (e) {
+            console.error("Failed to parse slides JSON", e);
+            // Fallback to a single theory slide
+            slidesData = [{
+                type: "theory" as SlideType,
+                title: section.title,
+                content: `## ${section.title}\n\n${section.description}\n\nContent for this section is being generated...`
+            }];
+        }
+
+        // Convert to SlideContent with page numbers
+        const newSlides: SlideContent[] = slidesData.map((slide, idx) => ({
+            pageNumber: startSlideNum + idx,
+            type: slide.type,
+            title: slide.title,
+            content: slide.content,
+        }));
+
+        // Also generate legacy markdown for backwards compatibility
+        const sectionMarkdown = newSlides.map(slide => 
+            `## ${slide.title}\n\n${slide.content}`
+        ).join("\n\n---\n\n");
 
         return {
-            sections_content: [content] // Append new markdown string
+            slides: newSlides,
+            sections_content: [sectionMarkdown]
         };
     }
 
@@ -413,12 +449,16 @@ ${resources.map(r => `- [${r.kind}] [${r.title}](${r.url})`).join('\n')}
     private async compileJson(state: typeof ContentAgentState.State) {
         const subtopicData = state.current_subtopic_data;
         const fullMarkdown = state.sections_content.join("\n\n");
+        const slides = state.slides || [];
 
         const response: AgentResponse = {
             id: state.current_subtopic_id,
+            subtopicId: state.current_subtopic_id,
             title: subtopicData.TopicName,
             createdAt: new Date().toISOString(),
-            markdown: fullMarkdown
+            markdown: fullMarkdown,
+            slides: slides,
+            totalSlides: slides.length,
         };
         return { final_json: response };
     }

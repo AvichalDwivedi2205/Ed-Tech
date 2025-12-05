@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ConvexStatus } from "@/components/ConvexStatus";
+import { MiniDrona } from "@/components/ai/MiniDrona";
 import Link from "next/link";
 
 export default function FlashcardPage() {
@@ -109,6 +110,7 @@ export default function FlashcardPage() {
           </CardContent>
         </Card>
       </div>
+      <MiniDrona workspaceId={workspaceId} />
     </div>
   );
 }

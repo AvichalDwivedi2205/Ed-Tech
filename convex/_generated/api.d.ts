@@ -10,6 +10,7 @@
 
 import type * as actions_content from "../actions/content.js";
 import type * as actions_flashcard from "../actions/flashcard.js";
+import type * as actions_miniDrona from "../actions/miniDrona.js";
 import type * as actions_quiz from "../actions/quiz.js";
 import type * as actions_rag from "../actions/rag.js";
 import type * as actions_roadmap from "../actions/roadmap.js";
@@ -38,6 +39,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   "actions/content": typeof actions_content;
   "actions/flashcard": typeof actions_flashcard;
+  "actions/miniDrona": typeof actions_miniDrona;
   "actions/quiz": typeof actions_quiz;
   "actions/rag": typeof actions_rag;
   "actions/roadmap": typeof actions_roadmap;

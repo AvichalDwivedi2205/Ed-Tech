@@ -83,12 +83,15 @@ export const generate = action({
       throw new Error("Failed to generate content");
     }
 
-    // Save to database via mutation
+    // Save to database via mutation with slides
     const contentId: Id<"content"> = await ctx.runMutation(api.mutations.content.saveContent, {
       workspaceId: args.workspaceId,
-      subtopicId: contentResult.id || args.subtopicId || "",
+      subtopicId: contentResult.id || contentResult.subtopicId || args.subtopicId || "",
+      subtopicName: contentResult.title,  // The actual topic name
       markdown: contentResult.markdown,
       jsonData: contentResult,
+      slides: contentResult.slides || [],
+      totalSlides: contentResult.totalSlides || contentResult.slides?.length || 0,
     });
 
     return {

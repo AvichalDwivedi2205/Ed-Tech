@@ -95,16 +95,24 @@ export default defineSchema({
   content: defineTable({
     workspaceId: v.id("workspaces"),
     subtopicId: v.string(),
+    subtopicName: v.optional(v.string()),  // Actual topic name from roadmap
     markdown: v.optional(v.string()),
     content: v.optional(v.string()),
     jsonData: v.optional(v.any()),
+    slides: v.optional(v.array(v.object({
+      pageNumber: v.number(),
+      type: v.string(),  // "theory" | "example" | "question" | "exercise" | "summary"
+      title: v.string(),
+      content: v.string(),
+      notes: v.optional(v.string()),
+    }))),
+    totalSlides: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
     graphs: v.optional(v.array(v.any())),
     quiz: v.optional(v.array(v.any())),
     roadmapId: v.optional(v.string()),
     status: v.optional(v.string()),
-    subtopicName: v.optional(v.string()),
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_subtopic", ["workspaceId", "subtopicId"]),

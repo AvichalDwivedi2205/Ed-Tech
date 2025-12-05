@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, GraduationCap, Sparkles } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ConvexStatus } from "@/components/ConvexStatus";
+import { MiniDrona } from "@/components/ai/MiniDrona";
 import Link from "next/link";
 
 export default function RoadmapPage() {
@@ -121,6 +122,7 @@ export default function RoadmapPage() {
           />
         </div>
       </div>
+      <MiniDrona workspaceId={workspaceId} />
     </div>
   );
 }
