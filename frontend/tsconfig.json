@@ -20,7 +20,7 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "convex/*": ["../convex/*"]
+      "convex/_generated/*": ["../convex/_generated/*"]
     }
   },
   "include": [
